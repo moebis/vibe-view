@@ -3,7 +3,7 @@ status: current
 owner: project-maintainer
 last_verified_date: 2026-09-23
 current_release: 1.3.3
-current_build: 23
+current_build: 24
 ---
 
 # Codex Watch project memory
@@ -11,8 +11,8 @@ current_build: 23
 ## Current state and routing
 
 - Native Mac app; repository `https://github.com/moebis/codex-watch`, primary checkout on `main`. No project production server, database, Docker deployment, or automatic updater. See README for install commands and attribution.
-- Version/build authority is `Resources/Info.plist` plus `scripts/verify_app.sh`. Version 1.3.3 build 23 passed 201 tests, complete strict-concurrency compilation with warnings as errors, 52 focused AddressSanitizer tests, release-script regressions, and signed universal bundle verification on 2026-09-23. The exact installed `/Applications/Codex Watch.app` passed verification and was launched.
-- Native Computer Use repeatedly timed out for the installed accessory app and SystemUIServer. Menu/dashboard visual acceptance remains unverified; deterministic native-view tests and successful launch are not a substitute. Unchanged notification, login, reset-confirmation, CSV-save, and first-launch Gatekeeper interactions were not exercised.
+- Version/build authority is `Resources/Info.plist` plus `scripts/verify_app.sh`. Version 1.3.3 build 24 passed 202 tests, release-script regressions, and signed universal bundle verification on 2026-09-23. This follow-up changes presentation only; strict-concurrency and sanitizer suites were not repeated. Install by replacing the whole bundle so its outer directory timestamp reflects the new build.
+- A native sample-data preview confirmed the complete reset/pace and Exhaustion lines and compact Lifetime layout. Computer Use exercised section switching and a sample notification toggle in the native menu, confirming the trailing checkmark state changed. The screenshot API captured the preview window but not its separate popup; lower-row horizontal alignment relies on the native no-state-column layout. No real notification delivery, login registration, reset consumption, or CSV save was exercised.
 - Start with `docs/agent-harness.md` for proportional verification; `ARCHITECTURE.md` owns structure. Active contracts own behavior, and `docs/decisions/README.md` routes to the relevant rationale. Do not reread every decision or rerun all gates for each task.
 
 ## Durable lessons from this thread
@@ -26,6 +26,6 @@ current_build: 23
 
 ## Retention and efficient maintenance
 
-The user explicitly requested removal of all older versions on 2026-09-23. After verifying the installed 1.3.3 bundle, the 1.3.1 and temporary 1.3.2 rollback bundles and completed project-owned build and sanitizer scratch trees were removed. No old app bundle is retained for this release. Preferences other than the retired Spark key, user exports, source history, shared caches, credentials, and unrelated applications remain outside cleanup scope. Future routine releases may retain at most one verified rollback unless the user requests otherwise.
+The user explicitly requested removal of all older versions on 2026-09-23. Keep only the installed build 24 after successful installation; remove temporary rollback bundles and completed project-owned build/preview trees. Preferences other than the retired Spark key, user exports, source history, shared caches, credentials, and unrelated applications remain outside cleanup scope. Future routine releases may retain at most one verified rollback unless the user requests otherwise.
 
 Inspect workflow triggers before every push and use a supported skip marker after direct verification. No version tag or GitHub Release was requested.

@@ -78,7 +78,7 @@ enum MenuBarText {
     }
 
     static func projectedExhaustionLine(_ projectedAt: Date) -> String {
-        "Projected exhaustion: \(resetFormatter.string(from: projectedAt))"
+        "Exhaustion: \(resetFormatter.string(from: projectedAt))"
     }
 
     static func updatedLine(lastUpdated: Date, now: Date) -> String {
@@ -304,44 +304,9 @@ final class NeutralProgressIndicator: NSProgressIndicator {
     }
 }
 
-final class QuotaProgressMenuView: NSView {
-    static let width: CGFloat = 260
-    static let creditsRemainingHeightIncrement: CGFloat = 22
-    static let height: CGFloat = 138
-    static let heightWithResetCredits: CGFloat = 146
-    static let heightWithResetCreditExpiry: CGFloat = 168
-    static let heightWithResetCreditProgress: CGFloat = 180
-
+final class QuotaProgressMenuView: MenuContentView {
     init(presentation: QuotaProgressPresentation) {
-        let baseHeight: CGFloat
-        if presentation.resetCreditsProgress != nil {
-            baseHeight = Self.heightWithResetCreditProgress
-        } else if presentation.resetCreditsDetail != nil {
-            baseHeight = Self.heightWithResetCreditExpiry
-        } else if presentation.resetCreditsValue != nil {
-            baseHeight = Self.heightWithResetCredits
-        } else {
-            baseHeight = Self.height
-        }
-        let quotaHeight = Self.extraQuotaHeight(presentation.quotaWindows)
-        let statusHeight = [presentation.statusDetail, presentation.updatedValue]
-            .compactMap { $0 }
-            .reduce(CGFloat.zero) { total, _ in total + 18 }
-        let rateLimitHeight: CGFloat = presentation.rateLimitReachedValue == nil ? 0 : 18
-        let viewHeight = baseHeight
-            + (presentation.creditsRemainingValue == nil ? 0 : Self.creditsRemainingHeightIncrement)
-            + quotaHeight
-            + statusHeight
-            + rateLimitHeight
-        super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: viewHeight))
-        translatesAutoresizingMaskIntoConstraints = false
-
-        let stack = NSStackView()
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 6
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
+        super.init(spacing: 6, alignment: .leading)
 
         add(Self.labelRow(title: "Plan", value: presentation.planValue), to: stack)
         if let creditsRemainingValue = presentation.creditsRemainingValue {
@@ -389,13 +354,7 @@ final class QuotaProgressMenuView: NSView {
             add(Self.detailLabel(creditsDetail), to: stack)
         }
 
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: Self.width),
-            heightAnchor.constraint(equalToConstant: viewHeight),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 10)
-        ])
+        resizeToFitContent()
     }
 
     @available(*, unavailable)
@@ -449,11 +408,9 @@ final class QuotaProgressMenuView: NSView {
             value: resetProgress,
             accessibilityLabel: "Time remaining until \(title) reset"
         ), to: stack)
-        if let resetDetail {
-            add(Self.detailLabel(resetDetail), to: stack)
-        }
-        if let paceText {
-            add(Self.detailLabel(paceText), to: stack)
+        let resetAndPace = [resetDetail, paceText].compactMap { $0 }.joined(separator: " — ")
+        if !resetAndPace.isEmpty {
+            add(Self.detailLabel(resetAndPace), to: stack)
         }
         if let projectedExhaustionText {
             add(Self.detailLabel(projectedExhaustionText), to: stack)
@@ -463,18 +420,6 @@ final class QuotaProgressMenuView: NSView {
     private func add(_ view: NSView, to stack: NSStackView) {
         stack.addArrangedSubview(view)
         view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-    }
-
-    private static func extraQuotaHeight(_ windows: [QuotaWindowPresentation]) -> CGFloat {
-        guard !windows.isEmpty else { return 0 }
-        let firstDetails: CGFloat = (windows[0].paceText == nil ? 0 : 18)
-            + (windows[0].projectedExhaustionText == nil ? 0 : 18)
-        return windows.dropFirst().reduce(firstDetails) { total, window in
-            total + 70
-                + (window.resetDetail == nil ? 0 : 18)
-                + (window.paceText == nil ? 0 : 18)
-                + (window.projectedExhaustionText == nil ? 0 : 18)
-        }
     }
 
     private static func detailLabel(_ text: String) -> NSTextField {

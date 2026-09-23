@@ -45,7 +45,7 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 | Layer | Primary types | Responsibility |
 |---|---|---|
 | Lifecycle | `CodexWatchApp`, `AppDelegate` | Accessory-app startup, wake observation, shutdown |
-| Menu orchestration | `MenuBarController`, `MenuBarPresentation` | Status item, native menu, refresh publication, truthful stale state |
+| Menu orchestration | `MenuBarController`, `MenuBarPresentation`, `MenuContentView` | Status item, native menu, refresh publication, truthful stale state |
 | Refresh | `RefreshCoordinator`, `RefreshPolicy` | Trigger coalescing, generation ownership, cadence, cancellation |
 | App-server transport | `CodexAppServerClient`, `ProcessAppServerLineTransport` | Managed-auth JSONL RPC over a local Codex child process with bounded line framing |
 | Compatibility transport | `CodexAuthReader`, `CodexUsageClient` | Optional bounded local credential read and bounded authenticated GET requests |
@@ -91,6 +91,7 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 - The status item uses the template `chart.pie.fill` SF Symbol and native foreground rendering so both icon and percentage adapt to light, dark, and selected materials.
 - Retired Spark quota rows are suppressed and their obsolete visibility preference is removed on initialization. Presentation still recognizes legacy and versioned Codex/Spark names; other server-defined buckets and historical analytics remain intact. No Spark-to-Luna quota mapping is inferred.
 - Usage projections use a single-entry in-memory cache per surface keyed by the complete dataset, range, calendar, and reference day. Lifetime models rebuild only when their profile changes. Unchanged dashboard values are not republished, and a closed window defers updates until reopened. Native menu opening rebuilds time-dependent labels through `menuNeedsUpdate(_:)`.
+- Custom menu sections share content-driven sizing and margins. The selected analytics section determines its height. Reset date and pace share a line; exhaustion remains separate. The main native menu hides its state gutter and uses trailing checkmark badges while preserving item state, actions, and keyboard handling.
 - Usage and Lifetime are distinct sources. The bounded 365-day dataset powers 7/30/90/365 projections; exact lifetime totals come from the profile route.
 - Activity-only days, observed zero-token days, and missing days remain distinct. Model rows describe activity; client rows describe tokens.
 - The heatmap uses seven weekday rows and as many week columns as the selected range needs. Model and client tables scroll horizontally instead of clipping narrow windows, and the dashboard refresh button invokes the same manual generation as the menu.

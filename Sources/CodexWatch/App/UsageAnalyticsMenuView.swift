@@ -92,10 +92,7 @@ struct LifetimeAnalyticsPresentation: Equatable {
     }
 }
 
-final class UsageAnalyticsMenuView: NSView {
-    static let width: CGFloat = 260
-    static let height: CGFloat = 240
-    static let staleHeightIncrement: CGFloat = 18
+final class UsageAnalyticsMenuView: MenuContentView {
 
     private let sectionControl: NSSegmentedControl
     private let usageContent: NSView
@@ -130,18 +127,10 @@ final class UsageAnalyticsMenuView: NSView {
         lifetimeContent = Self.lifetimeContent(presentation: lifetimePresentation)
         self.onSelect = onSelect
 
-        let hasStaleContent = usagePresentation?.staleValue != nil
-            || lifetimePresentation?.staleValue != nil
-        let viewHeight = Self.height + (hasStaleContent ? Self.staleHeightIncrement : 0)
-        super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: viewHeight))
-        translatesAutoresizingMaskIntoConstraints = false
-
-        let stack = NSStackView(views: [sectionControl, usageContent, lifetimeContent])
-        stack.orientation = .vertical
-        stack.alignment = .centerX
-        stack.spacing = 8
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(stack)
+        super.init(spacing: 8, alignment: .centerX)
+        for view in [sectionControl, usageContent, lifetimeContent] {
+            stack.addArrangedSubview(view)
+        }
 
         sectionControl.target = self
         sectionControl.action = #selector(sectionChanged)
@@ -149,14 +138,6 @@ final class UsageAnalyticsMenuView: NSView {
         usageContent.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         lifetimeContent.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         show(selectedSection)
-
-        NSLayoutConstraint.activate([
-            widthAnchor.constraint(equalToConstant: Self.width),
-            heightAnchor.constraint(equalToConstant: viewHeight),
-            stack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 14),
-            stack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-            stack.topAnchor.constraint(equalTo: topAnchor, constant: 10)
-        ])
     }
 
     @available(*, unavailable)
@@ -173,6 +154,7 @@ final class UsageAnalyticsMenuView: NSView {
     private func show(_ section: MenuAnalyticsSection) {
         usageContent.isHidden = section != .days30
         lifetimeContent.isHidden = section != .lifetime
+        resizeToFitContent()
     }
 
     private static func usageContent(presentation: UsageAnalyticsPresentation?) -> NSView {

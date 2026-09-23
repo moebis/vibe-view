@@ -200,6 +200,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         let menu = existingMenu ?? NSMenu()
         menu.removeAllItems()
         menu.delegate = self
+        menu.showsStateColumn = false
         let progressItem = NSMenuItem()
         progressItem.view = QuotaProgressMenuView(
             presentation: QuotaProgressPresentation(
@@ -340,6 +341,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private func toggleItem(title: String, action: Selector, isOn: Bool) -> NSMenuItem {
         let item = actionItem(title: title, action: action, keyEquivalent: "")
         item.state = isOn ? .on : .off
+        item.badge = isOn ? NSMenuItemBadge(string: "✓") : nil
         return item
     }
 

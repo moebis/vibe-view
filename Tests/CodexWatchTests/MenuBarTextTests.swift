@@ -54,6 +54,10 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(menuTitles.contains("Open Analytics Dashboard…"))
         XCTAssertTrue(menuTitles.contains("Refresh Frequency"))
         XCTAssertFalse(menuTitles.contains { $0.contains("Spark") })
+        XCTAssertEqual(statusItem.menu?.showsStateColumn, false)
+        for item in statusItem.menu?.items ?? [] where item.title == "Quota Notifications" || item.title == "Launch at Login" {
+            XCTAssertEqual(item.badge?.stringValue, item.state == .on ? "✓" : nil)
+        }
         XCTAssertTrue(menuTitles.contains("Quota Notifications"))
         XCTAssertTrue(menuTitles.contains("Launch at Login"))
         XCTAssertTrue(menuTitles.contains("Copy Diagnostics"))
@@ -221,10 +225,7 @@ final class MenuBarTextTests: XCTestCase {
 
         XCTAssertEqual(presentation.staleValue, "Stale · refresh unavailable")
         XCTAssertTrue(textValues(in: view).contains("Stale · refresh unavailable"))
-        XCTAssertEqual(
-            view.frame.height,
-            UsageAnalyticsMenuView.height + UsageAnalyticsMenuView.staleHeightIncrement
-        )
+        assertContentFits(view)
     }
 
     func testUsageAnalyticsMenuContainsSixLabeledRows() {
@@ -645,7 +646,7 @@ final class MenuBarTextTests: XCTestCase {
         )
 
         XCTAssertEqual(fast.projectedExhaustionAt, now.addingTimeInterval(28 * 3_600))
-        XCTAssertTrue(fast.projectedExhaustionText?.hasPrefix("Projected exhaustion: ") == true)
+        XCTAssertTrue(fast.projectedExhaustionText?.hasPrefix("Exhaustion: ") == true)
         XCTAssertNil(onPace.projectedExhaustionAt)
         XCTAssertNil(onPace.projectedExhaustionText)
 
@@ -809,7 +810,7 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertEqual(NeutralProgressIndicator.fillColor, .secondaryLabelColor)
         XCTAssertEqual(NeutralProgressIndicator.trackColor, .separatorColor)
         XCTAssertEqual(view.frame.size.width, QuotaProgressMenuView.width)
-        XCTAssertEqual(view.frame.size.height, QuotaProgressMenuView.height)
+        assertContentFits(view)
         XCTAssertTrue(textValues(in: view).contains("Plan"))
         XCTAssertTrue(textValues(in: view).contains("Unavailable"))
     }
@@ -833,10 +834,9 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(textValues(in: visible).contains("Credits remaining"))
         XCTAssertTrue(textValues(in: visible).contains("-1.25"))
         XCTAssertFalse(textValues(in: hidden).contains("Credits remaining"))
-        XCTAssertEqual(
-            visible.frame.height,
-            QuotaProgressMenuView.height + QuotaProgressMenuView.creditsRemainingHeightIncrement
-        )
+        XCTAssertGreaterThan(visible.frame.height, hidden.frame.height)
+        assertContentFits(visible)
+        assertContentFits(hidden)
     }
 
     func testProgressPresentationShowsUnlimitedCredits() {
@@ -978,7 +978,8 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(textValues(in: visibleView).contains("Reset credits"))
         XCTAssertTrue(textValues(in: visibleView).contains("2 available"))
         XCTAssertFalse(textValues(in: hiddenView).contains("Reset credits"))
-        XCTAssertEqual(visibleView.frame.height, QuotaProgressMenuView.heightWithResetCredits)
+        XCTAssertGreaterThan(visibleView.frame.height, hiddenView.frame.height)
+        assertContentFits(visibleView)
     }
 
     func testProgressMenuShowsResetCreditExpiryWhenAvailable() {
@@ -1002,7 +1003,35 @@ final class MenuBarTextTests: XCTestCase {
             progressBars.last?.toolTip,
             "Time remaining until next reset credit expires"
         )
-        XCTAssertEqual(view.frame.height, QuotaProgressMenuView.heightWithResetCreditProgress)
+        assertContentFits(view)
+    }
+
+    func testAnalyticsSectionChangeRemovesUnusedVerticalSpace() throws {
+        let usage = UsageAnalyticsPresentation(projection: makeAnalyticsProjection(
+            totalTokens: 100, inputTokens: 20, cachedInputTokens: 30,
+            outputTokens: 50, turns: 4, chats: 2
+        ))
+        let view = UsageAnalyticsMenuView(
+            usagePresentation: usage, lifetimePresentation: nil,
+            selectedSection: .days30, onSelect: { _ in }
+        )
+        let fullHeight = view.frame.height
+        assertContentFits(view)
+        let selector = try XCTUnwrap(segmentedControls(in: view).first)
+        selector.selectedSegment = MenuAnalyticsSection.lifetime.rawValue
+        selector.sendAction(selector.action, to: selector.target)
+        XCTAssertLessThan(view.frame.height, fullHeight)
+        assertContentFits(view)
+        selector.selectedSegment = MenuAnalyticsSection.days30.rawValue
+        selector.sendAction(selector.action, to: selector.target)
+        XCTAssertEqual(view.frame.height, fullHeight)
+        assertContentFits(view)
+    }
+
+    private func assertContentFits(_ view: MenuContentView, file: StaticString = #filePath, line: UInt = #line) {
+        view.layoutSubtreeIfNeeded()
+        XCTAssertEqual(view.stack.frame.minY, MenuContentView.verticalInset, accuracy: 1, file: file, line: line)
+        XCTAssertEqual(view.frame.height - view.stack.frame.maxY, MenuContentView.verticalInset, accuracy: 1, file: file, line: line)
     }
 
     private func progressIndicators(in view: NSView) -> [NSProgressIndicator] {

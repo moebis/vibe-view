@@ -64,7 +64,7 @@ BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")"
 [[ "$DISPLAY_NAME" == "Codex Watch" ]] || { echo "error: unexpected display name" >&2; exit 1; }
 [[ "$BUNDLE_ID" == "com.moebis.codexwatch" ]] || { echo "error: unexpected bundle identifier" >&2; exit 1; }
 [[ "$VERSION" == "1.3.3" ]] || { echo "error: unexpected version" >&2; exit 1; }
-[[ "$BUILD" == "23" ]] || { echo "error: unexpected build number" >&2; exit 1; }
+[[ "$BUILD" == "24" ]] || { echo "error: unexpected build number" >&2; exit 1; }
 
 codesign --verify --strict "$APP_PATH"
 

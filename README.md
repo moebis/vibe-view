@@ -23,6 +23,8 @@ The [app-server protocol](https://learn.chatgpt.com/docs/app-server) exposes ser
 
 ## Controls and refresh behavior
 
+The menu uses aligned content margins, trailing checkmarks for its toggles, and analytics sections that fit the selected content. Reset dates and pace share one line separated by an em dash; the next line uses the shorter `Exhaustion` label.
+
 The menu includes:
 
 - `Refresh Now`

@@ -16,4 +16,6 @@ Keep Lifetime in its own dashboard tab and expose headline values through the pe
 
 OpenAI deprecated Spark on September 14, 2026 ([official changelog](https://learn.chatgpt.com/docs/changelog)). Suppress retired quota rows and remove the obsolete visibility preference. Recognize adjacent Codex/Spark words in IDs or titles, including versioned GPT names and duplicate suffixes; preserve unrelated server-reported models, historical analytics, and base-weekly quota semantics. Do not rename a legacy Spark allowance to Luna without a server-defined quota mapping.
 
+Fit custom menu sections to their actual visible content, including after changing the compact analytics selector. Share horizontal margins with native action rows by hiding the main menu state column and displaying toggle state as trailing checkmark badges. Preserve the native item state and action so keyboard and accessibility behavior remain native.
+
 Use template `chart.pie.fill` with native foreground rendering. Custom colored marks were visually complex, and forced label colors failed against some menu-bar materials. Preserve the approved app artwork and verify ICNS representations when packaging changes. Preference persistence is allowed; authenticated metric values remain in memory.
