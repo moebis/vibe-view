@@ -10,7 +10,7 @@ enum UsageAnalyticsCSVExporter {
         calendar: Calendar = .current
     ) throws -> String {
         var rows: [[String]] = [
-            ["Codex Watch analytics", projection.range.title],
+            ["Vibe View analytics", projection.range.title],
             ["Data through", projection.dataThrough.map { dateText($0, calendar: calendar) } ?? "Unavailable"],
             ["Coverage", "\(projection.observedDayCount)/\(projection.requestedDayCount) days"],
             [],

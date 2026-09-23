@@ -4,9 +4,9 @@ owner: project-maintainer
 last_verified_commit: a628a8c
 ---
 
-# Codex Watch architecture
+# Vibe View architecture
 
-This is the current structural authority for Codex Watch. Behavioral details belong in the active contracts and architecture decisions; release history remains in Git.
+This is the current structural authority for Vibe View. Behavioral details belong in the active contracts and architecture decisions; release history remains in Git.
 
 ## Runtime snapshot
 
@@ -58,9 +58,9 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 
 ## Trust and privacy boundaries
 
-- `CodexAppServerClient` launches a locally installed Codex executable with the `app-server` command, completes the required initialize handshake with experimental APIs disabled, and permits only the account methods Codex Watch uses. Short pipe replies are consumed with POSIX reads without waiting for a full buffer or EOF. Stdio messages have a one-mebibyte ceiling and each request has a 20-second timeout. Child stderr is discarded so private server diagnostics cannot enter app output.
-- The app-server command is currently documented as experimental. Codex Watch therefore preserves its bounded same-host HTTPS path as a compatibility fallback and as the richer Usage analytics source.
-- Managed ChatGPT authentication is owned by Codex and may use its configured file, keyring, or automatic credential store. Codex Watch does not read or copy keyring credentials.
+- `CodexAppServerClient` launches a locally installed Codex executable with the `app-server` command, completes the required initialize handshake with experimental APIs disabled, and permits only the account methods Vibe View uses. Short pipe replies are consumed with POSIX reads without waiting for a full buffer or EOF. Stdio messages have a one-mebibyte ceiling and each request has a 20-second timeout. Child stderr is discarded so private server diagnostics cannot enter app output.
+- The app-server command is currently documented as experimental. Vibe View therefore preserves its bounded same-host HTTPS path as a compatibility fallback and as the richer Usage analytics source.
+- Managed ChatGPT authentication is owned by Codex and may use its configured file, keyring, or automatic credential store. Vibe View does not read or copy keyring credentials.
 - When available, `CodexAuthReader` reads only `auth.json`, requires a regular file, and enforces the one-mebibyte ceiling while reading from the opened handle. The read runs at utility priority outside the main actor.
 - `SecureUsageSession` is ephemeral, uncached, and cookieless. Authenticated requests require HTTPS and the original ChatGPT host and effective port; cross-host redirects are rejected.
 - `CodexUsageClient` consumes response bytes incrementally and stops after one mebibyte. The reset-credit detail request is optional and has a shorter timeout.

@@ -72,7 +72,7 @@ final class AnalyticsWindowController: NSObject, NSWindowDelegate {
         )
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(contentViewController: hostingController)
-        window.title = "Codex Watch Analytics"
+        window.title = "Vibe View Analytics"
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.setContentSize(NSSize(width: 940, height: 720))
         window.minSize = NSSize(width: 760, height: 560)
@@ -100,7 +100,7 @@ final class AnalyticsWindowController: NSObject, NSWindowDelegate {
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = "Analytics export failed"
-            alert.informativeText = "Codex Watch could not save the CSV. Choose another destination and try again."
+            alert.informativeText = "Vibe View could not save the CSV. Choose another destination and try again."
             alert.addButton(withTitle: "OK")
             if let window {
                 alert.beginSheetModal(for: window)

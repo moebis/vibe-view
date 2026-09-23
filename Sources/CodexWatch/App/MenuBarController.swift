@@ -299,7 +299,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         versionItem.isEnabled = false
         menu.addItem(versionItem)
         menu.addItem(.separator())
-        menu.addItem(actionItem(title: "Quit Codex Watch", action: #selector(quit), keyEquivalent: "q"))
+        menu.addItem(actionItem(title: "Quit Vibe View", action: #selector(quit), keyEquivalent: "q"))
         if statusItem.menu !== menu {
             statusItem.menu = menu
         }
@@ -435,7 +435,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         } catch {
             showAlert(
                 title: "Launch at Login could not be changed",
-                message: "Review Codex Watch in System Settings and try again."
+                message: "Review Vibe View in System Settings and try again."
             )
         }
     }

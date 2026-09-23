@@ -440,7 +440,7 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertEqual(button.font?.pointSize, MenuBarButtonStyle.fontSize)
         XCTAssertEqual(image?.size, NSSize(width: 16, height: 16))
         XCTAssertTrue(image?.isTemplate ?? false)
-        XCTAssertEqual(image?.accessibilityDescription, "Codex Watch usage statistics")
+        XCTAssertEqual(image?.accessibilityDescription, "Vibe View usage statistics")
         XCTAssertNotNil(image?.tiffRepresentation)
     }
 

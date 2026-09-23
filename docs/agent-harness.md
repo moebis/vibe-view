@@ -5,7 +5,7 @@ created_at: 2026-07-19
 last_verified_commit: 018225f
 ---
 
-# Codex Watch change harness
+# Vibe View change harness
 
 ## Scope and authority
 

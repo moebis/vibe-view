@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_PATH="${1:-}"
 if [[ -z "$APP_PATH" ]]; then
-    echo "usage: $0 '/path/to/Codex Watch.app'" >&2
+    echo "usage: $0 '/path/to/Vibe View.app'" >&2
     exit 2
 fi
 
@@ -61,10 +61,10 @@ DISPLAY_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$INFO_P
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$INFO_PLIST")"
 VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$INFO_PLIST")"
 BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$INFO_PLIST")"
-[[ "$DISPLAY_NAME" == "Codex Watch" ]] || { echo "error: unexpected display name" >&2; exit 1; }
+[[ "$DISPLAY_NAME" == "Vibe View" ]] || { echo "error: unexpected display name" >&2; exit 1; }
 [[ "$BUNDLE_ID" == "com.moebis.codexwatch" ]] || { echo "error: unexpected bundle identifier" >&2; exit 1; }
 [[ "$VERSION" == "1.3.3" ]] || { echo "error: unexpected version" >&2; exit 1; }
-[[ "$BUILD" == "26" ]] || { echo "error: unexpected build number" >&2; exit 1; }
+[[ "$BUILD" == "27" ]] || { echo "error: unexpected build number" >&2; exit 1; }
 
 codesign --verify --strict "$APP_PATH"
 

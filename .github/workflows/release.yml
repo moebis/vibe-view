@@ -35,11 +35,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           version="$(plutil -extract CFBundleShortVersionString raw -o - Resources/Info.plist)"
-          archive="dist/CodexWatch-${version}-macOS-universal.zip"
+          archive="dist/VibeView-${version}-macOS-universal.zip"
           gh release create "${GITHUB_REF_NAME}" \
             "${archive}" \
             "${archive}.sha256" \
             --repo "${GITHUB_REPOSITORY}" \
             --verify-tag \
             --generate-notes \
-            --title "Codex Watch ${GITHUB_REF_NAME}"
+            --title "Vibe View ${GITHUB_REF_NAME}"

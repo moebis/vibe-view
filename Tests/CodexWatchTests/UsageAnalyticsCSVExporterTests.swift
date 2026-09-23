@@ -8,7 +8,7 @@ final class UsageAnalyticsCSVExporterTests: XCTestCase {
 
         let csv = try UsageAnalyticsCSVExporter.string(projection: projection)
         let expectedRows = [
-            "Codex Watch analytics,30d",
+            "Vibe View analytics,30d",
             "Data through,2026-08-19",
             "Coverage,1/30 days",
             "",

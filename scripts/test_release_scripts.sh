@@ -89,7 +89,7 @@ SCRIPT
     [[ "$second_invocation" != *"--show-bin-path"* ]] || {
         fail "the real build must not use --show-bin-path"
     }
-    [[ -x "$fixture/dist/Codex Watch.app/Contents/MacOS/CodexWatch" ]] || {
+    [[ -x "$fixture/dist/Vibe View.app/Contents/MacOS/CodexWatch" ]] || {
         fail "build_app.sh did not package the executable created by the real build"
     }
 }
@@ -113,8 +113,8 @@ SCRIPT
 #!/usr/bin/env bash
 set -euo pipefail
 [[ -f "$(dirname "$0")/gate-passed" ]] || { echo 'release gate was skipped' >&2; exit 1; }
-mkdir -p "$1/Codex Watch.app/Contents"
-printf 'archive payload\n' > "$1/Codex Watch.app/Contents/payload"
+mkdir -p "$1/Vibe View.app/Contents"
+printf 'archive payload\n' > "$1/Vibe View.app/Contents/payload"
 SCRIPT
     chmod +x "$fixture/scripts/build_app.sh"
 
@@ -157,7 +157,7 @@ fi
 if [[ "$1" == "-x" ]]; then
     archive_path="$3"
     destination="$4"
-    cp -R "$archive_path.contents/Codex Watch.app" "$destination/"
+    cp -R "$archive_path.contents/Vibe View.app" "$destination/"
     if [[ "${FAKE_ARCHIVE_EXTRA:-0}" == "1" ]]; then
         printf 'unexpected\n' > "$destination/unexpected.txt"
     fi
@@ -200,20 +200,20 @@ test_release_verifies_exact_archive_payload() {
     extracted_verification_prefix="arm64 x86_64|$dist/.codex-watch-archive-verify."
 
     assert_equals 2 "$verify_count" "app verification count"
-    assert_equals "arm64 x86_64|$dist/Codex Watch.app" "$first_verification" \
+    assert_equals "arm64 x86_64|$dist/Vibe View.app" "$first_verification" \
         "pre-archive verification"
-    [[ "$second_verification" == "$extracted_verification_prefix"*"/Codex Watch.app" ]] || {
+    [[ "$second_verification" == "$extracted_verification_prefix"*"/Vibe View.app" ]] || {
         fail "the second verification did not target the extracted archive app"
     }
-    [[ -f "$dist/CodexWatch-1.3.0-macOS-universal.zip" ]] || {
+    [[ -f "$dist/VibeView-1.3.0-macOS-universal.zip" ]] || {
         fail "release archive was not produced"
     }
-    [[ -f "$dist/CodexWatch-1.3.0-macOS-universal.zip.sha256" ]] || {
+    [[ -f "$dist/VibeView-1.3.0-macOS-universal.zip.sha256" ]] || {
         fail "release checksum was not produced"
     }
     local checksum_target
-    checksum_target="$(awk 'NR == 1 { print $2 }' "$dist/CodexWatch-1.3.0-macOS-universal.zip.sha256")"
-    assert_equals "CodexWatch-1.3.0-macOS-universal.zip" "$checksum_target" \
+    checksum_target="$(awk 'NR == 1 { print $2 }' "$dist/VibeView-1.3.0-macOS-universal.zip.sha256")"
+    assert_equals "VibeView-1.3.0-macOS-universal.zip" "$checksum_target" \
         "portable checksum target"
     [[ "$(cat "$dist/adjacent-sentinel")" == "keep" ]] || {
         fail "archive verification cleanup modified an adjacent path"
@@ -241,7 +241,7 @@ test_release_rejects_extra_top_level_archive_content() {
         fail "release.sh accepted unexpected top-level archive content"
     fi
 
-    grep -q 'archive must contain only Codex Watch.app at its root' "$fixture/release.stderr" || {
+    grep -q 'archive must contain only Vibe View.app at its root' "$fixture/release.stderr" || {
         fail "release.sh failed for the wrong reason when archive content was unexpected"
     }
 

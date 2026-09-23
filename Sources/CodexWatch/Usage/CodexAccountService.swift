@@ -62,7 +62,7 @@ actor CodexAccountService: CodexAccountServing {
             return CodexAppServerClient(
                 transport: transport,
                 clientInfo: AppServerClientInfo(
-                    name: "codex-watch", title: "Codex Watch", version: clientVersion
+                    name: "codex-watch", title: "Vibe View", version: clientVersion
                 )
             )
         }

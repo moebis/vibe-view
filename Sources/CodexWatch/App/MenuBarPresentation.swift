@@ -12,7 +12,7 @@ enum MenuBarButtonStyle {
         button.imageHugsTitle = true
         button.alignment = .center
         button.font = .monospacedDigitSystemFont(ofSize: fontSize, weight: .medium)
-        button.toolTip = "Codex Watch weekly quota"
+        button.toolTip = "Vibe View weekly quota"
     }
 
     static func applyRefreshState(to button: NSButton, isStale: Bool) {
@@ -21,7 +21,7 @@ enum MenuBarButtonStyle {
     }
 
     static func makeStatusImage() -> NSImage {
-        let description = "Codex Watch usage statistics"
+        let description = "Vibe View usage statistics"
         let symbol = NSImage(
             systemSymbolName: "chart.pie.fill",
             accessibilityDescription: description

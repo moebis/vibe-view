@@ -1,6 +1,10 @@
-# Codex Watch
+# Vibe View
 
-Codex Watch is a native macOS menu bar app for monitoring ChatGPT Codex quota, token usage, and activity. Version 1.3.2 prefers Codex's managed-auth app-server account APIs, preserves a bounded compatibility path for richer analytics, and adds explicit quota alerts and account controls while keeping the menu-bar percentage focused on the base weekly quota.
+Vibe View is a native macOS menu bar app for monitoring ChatGPT Codex quota, token usage, and activity. Version 1.3.3 prefers Codex's managed-auth app-server account APIs, preserves a bounded compatibility path for richer analytics, and adds explicit quota alerts and account controls while keeping the menu-bar percentage focused on the base weekly quota.
+
+The app was formerly Codex Watch. The macOS bundle identifier (`com.moebis.codexwatch`), executable, and preference keys remain stable so upgrades retain your settings. The GitHub repository is now [`moebis/vibe-view`](https://github.com/moebis/vibe-view).
+
+Claude Code support is in development. This build retains Codex monitoring; it does not yet connect to Claude or display Claude quota. Claude desktop and Claude Code share [subscription usage limits](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work); API spending and session context usage are separate measures.
 
 ## What it shows
 
@@ -17,9 +21,9 @@ Model rows report turns, chats, credits, and turn share because the endpoint doe
 
 ## Current model and quota support
 
-OpenAI [deprecated GPT-5.3-Codex-Spark on September 14, 2026](https://learn.chatgpt.com/docs/changelog). The current [model guide](https://learn.chatgpt.com/docs/models) lists Luna, but neither that guide nor the [pricing documentation](https://learn.chatgpt.com/docs/pricing) establishes a Spark-to-Luna quota migration. Codex Watch does not rename a legacy Spark bucket or invent a separate Luna allowance.
+OpenAI [deprecated GPT-5.3-Codex-Spark on September 14, 2026](https://learn.chatgpt.com/docs/changelog). The current [model guide](https://learn.chatgpt.com/docs/models) lists Luna, but neither that guide nor the [pricing documentation](https://learn.chatgpt.com/docs/pricing) establishes a Spark-to-Luna quota migration. Vibe View does not rename a legacy Spark bucket or invent a separate Luna allowance.
 
-The [app-server protocol](https://learn.chatgpt.com/docs/app-server) exposes server-defined `rateLimitsByLimitId` buckets, with `rateLimits` retained for compatibility. Codex Watch prefers the explicit `codex` base bucket and preserves distinct additional windows even when server identifiers are long or normalize to the same text. Historical model activity in Usage analytics remains unchanged.
+The [app-server protocol](https://learn.chatgpt.com/docs/app-server) exposes server-defined `rateLimitsByLimitId` buckets, with `rateLimits` retained for compatibility. Vibe View prefers the explicit `codex` base bucket and preserves distinct additional windows even when server identifiers are long or normalize to the same text. Historical model activity in Usage analytics remains unchanged.
 
 ## Controls and refresh behavior
 
@@ -48,13 +52,13 @@ Codex app-server rate-limit updates request a coalesced quota-only refresh. The 
 
 ## CSV export
 
-`Export CSV…` in the native dashboard exports only the currently selected projection after you choose a destination. The RFC 4180 CSV contains range metadata, coverage, every daily state, model activity, and client token totals. Server-supplied labels are protected against spreadsheet-formula injection. Codex Watch never chooses an export path or writes analytics automatically.
+`Export CSV…` in the native dashboard exports only the currently selected projection after you choose a destination. The RFC 4180 CSV contains range metadata, coverage, every daily state, model activity, and client token totals. Server-supplied labels are protected against spreadsheet-formula injection. Vibe View never chooses an export path or writes analytics automatically.
 
 ## Authentication and privacy
 
-Codex Watch first launches an installed Codex executable's `app-server` command and uses its managed ChatGPT authentication for account identity, quota, lifetime summary, live rate-limit updates, and confirmed reset-credit use. This supports Codex's configured credential store without copying credentials into Codex Watch. The app-server command is currently documented as experimental; Codex Watch disables experimental protocol APIs, fails closed, and retains a compatibility path.
+Vibe View first launches an installed Codex executable's `app-server` command and uses its managed ChatGPT authentication for account identity, quota, lifetime summary, live rate-limit updates, and confirmed reset-credit use. This supports Codex's configured credential store without copying credentials into Vibe View. The app-server command is currently documented as experimental; Vibe View disables experimental protocol APIs, fails closed, and retains a compatibility path.
 
-For richer 365-day Usage analytics and profile details, Codex Watch optionally reads `tokens.access_token` and `tokens.account_id` from `CODEX_HOME/auth.json`; when `CODEX_HOME` is unset, it checks `~/.codex/auth.json`. If file credentials are unavailable, official app-server quota and lifetime summaries remain usable while the richer compatibility-only surfaces show unavailable.
+For richer 365-day Usage analytics and profile details, Vibe View optionally reads `tokens.access_token` and `tokens.account_id` from `CODEX_HOME/auth.json`; when `CODEX_HOME` is unset, it checks `~/.codex/auth.json`. If file credentials are unavailable, official app-server quota and lifetime summaries remain usable while the richer compatibility-only surfaces show unavailable.
 
 Compatibility credentials are used in memory only for read-only requests on the original ChatGPT HTTPS host:
 
@@ -67,9 +71,9 @@ GET https://chatgpt.com/backend-api/wham/profiles/me
 
 The Usage analytics request covers the inclusive trailing 365 calendar days. Smaller views are projected locally from that one bounded response. The profile request supplies exact Lifetime headline totals and its own daily activity buckets; those values are never reconstructed from incomplete historical rows. Each response is capped at one mebibyte. The production network session is ephemeral, uncached, cookieless, and rejects redirects to another host.
 
-Authenticated responses remain in process memory. Codex Watch never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or third-party network destination.
+Authenticated responses remain in process memory. Vibe View never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or third-party network destination.
 
-The ChatGPT routes are internal and may change without notice. Missing or changed optional fields are hidden or marked partial rather than guessed. Codex Watch does not infer absolute token allowances, missing lifetime totals, streaks, plugin use, skill use, reasoning modes, or pricing.
+The ChatGPT routes are internal and may change without notice. Missing or changed optional fields are hidden or marked partial rather than guessed. Vibe View does not infer absolute token allowances, missing lifetime totals, streaks, plugin use, skill use, reasoning modes, or pricing.
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
@@ -85,12 +89,12 @@ EXPECTED_ARCHITECTURES="arm64 x86_64" \
 ./scripts/verify.sh /private/tmp/codex-watch-build
 ```
 
-Quit Codex Watch and preserve the existing app as the latest rollback copy in `~/Library/Application Support/Codex Watch/Backups`, then install and verify the new bundle. Retain only one verified rollback after installation succeeds:
+Quit Vibe View and preserve the existing app as the latest rollback copy in `~/Library/Application Support/Vibe View/Backups`, then install and verify the new bundle. Retain only one verified rollback after installation succeeds:
 
 ```sh
-ditto "/private/tmp/codex-watch-build/Codex Watch.app" "/Applications/Codex Watch.app"
+ditto "/private/tmp/codex-watch-build/Vibe View.app" "/Applications/Vibe View.app"
 EXPECTED_ARCHITECTURES="arm64 x86_64" \
-./scripts/verify_app.sh "/Applications/Codex Watch.app"
+./scripts/verify_app.sh "/Applications/Vibe View.app"
 ```
 
 The local release is ad-hoc signed because this repository does not contain an Apple Developer ID certificate. macOS may require Control-clicking the app and choosing **Open** on first launch.
@@ -118,7 +122,7 @@ Keep signing output outside File Provider or other synced folders. Those service
 
 Inspect workflow triggers before pushing. Use `[skip ci]` for routine pushes verified directly, including documentation updates. A separately authorized `vMAJOR.MINOR.PATCH` tag matching `CFBundleShortVersionString` triggers hosted release packaging and publication; it rejects a mismatched tag. An existing trigger does not authorize hosted execution when a direct path suffices.
 
-Remove obsolete project build/temp outputs after use and keep one latest verified rollback app. Codex Watch has no configured production server or Docker deployment. Keep preferences, user-selected exports, shared caches, and unrelated backups separate from app-build cleanup.
+Remove obsolete project build/temp outputs after use and keep one latest verified rollback app. Vibe View has no configured production server or Docker deployment. Keep preferences, user-selected exports, shared caches, and unrelated backups separate from app-build cleanup.
 
 ## Architecture and maintenance
 
@@ -131,4 +135,4 @@ Remove obsolete project build/temp outputs after use and keep one latest verifie
 
 MIT License. See [LICENSE](LICENSE).
 
-Codex Watch is derived from [CodexNotch by smallyunet](https://github.com/smallyunet/codex-notch). The original copyright and license notice are preserved. The Codex-only analytics architecture also drew practical inspiration from [CodexBar](https://github.com/steipete/CodexBar/) while intentionally excluding its multi-provider, browser-cookie, and updater surface.
+Vibe View is derived from [CodexNotch by smallyunet](https://github.com/smallyunet/codex-notch). The original copyright and license notice are preserved. The Codex-only analytics architecture also drew practical inspiration from [CodexBar](https://github.com/steipete/CodexBar/) while intentionally excluding its multi-provider, browser-cookie, and updater surface.

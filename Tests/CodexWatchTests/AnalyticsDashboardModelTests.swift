@@ -136,7 +136,7 @@ final class AnalyticsDashboardModelTests: XCTestCase {
         model.update(dataset: makeDashboardDataset(total: 100), error: nil, now: now)
         model.range = .days7
 
-        XCTAssertTrue(try model.csvString().hasPrefix("Codex Watch analytics,7d\r\n"))
+        XCTAssertTrue(try model.csvString().hasPrefix("Vibe View analytics,7d\r\n"))
         XCTAssertEqual(
             model.suggestedCSVFilename,
             "codex-watch-analytics-7d-2026-08-20.csv"

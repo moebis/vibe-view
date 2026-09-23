@@ -18,7 +18,7 @@ struct LifetimeDashboardView: View {
             ContentUnavailableView(
                 "Lifetime statistics unavailable",
                 systemImage: "gauge.with.dots.needle.50percent",
-                description: Text("Refresh Codex Watch after signing in to ChatGPT.")
+                description: Text("Refresh Vibe View after signing in to ChatGPT.")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

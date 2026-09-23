@@ -14,7 +14,7 @@ final class CodexAppServerClientTests: XCTestCase {
         let params = try XCTUnwrap(initialize.params)
         let clientInfo = try XCTUnwrap(params.clientInfo)
         XCTAssertEqual(clientInfo.name, "codex-watch")
-        XCTAssertEqual(clientInfo.title, "Codex Watch")
+        XCTAssertEqual(clientInfo.title, "Vibe View")
         XCTAssertEqual(clientInfo.version, "1.3.0")
         let capabilities = try XCTUnwrap(params.capabilities)
         XCTAssertEqual(capabilities.experimentalApi, false)
@@ -193,7 +193,7 @@ final class CodexAppServerClientTests: XCTestCase {
             transport: transport,
             clientInfo: AppServerClientInfo(
                 name: "codex-watch",
-                title: "Codex Watch",
+                title: "Vibe View",
                 version: "1.3.0"
             ),
             requestTimeout: .milliseconds(10)
@@ -267,7 +267,7 @@ final class CodexAppServerClientTests: XCTestCase {
             transport: transport,
             clientInfo: AppServerClientInfo(
                 name: "codex-watch",
-                title: "Codex Watch",
+                title: "Vibe View",
                 version: "1.3.0"
             )
         )

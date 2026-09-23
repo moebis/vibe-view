@@ -217,7 +217,7 @@ struct AppServerAccountUsageResponse: Decodable, Equatable, Sendable {
     let summary: AppServerAccountUsageSummary
     let dailyUsageBuckets: [AppServerAccountUsageDailyBucket]?
 
-    // The generated schema also exposes threadUsage. Codex Watch intentionally
+    // The generated schema also exposes threadUsage. Vibe View intentionally
     // omits it so per-thread account data is neither retained nor surfaced.
 }
 

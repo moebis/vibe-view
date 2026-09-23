@@ -6,8 +6,8 @@ DIST_DIR="${1:-${DIST_DIR:-$ROOT_DIR/dist}}"
 VERSION="${VERSION:-$(plutil -extract CFBundleShortVersionString raw -o - "$ROOT_DIR/Resources/Info.plist")}"
 ARCHIVE_ARCH="${ARCHIVE_ARCH:-$(uname -m)}"
 ARCHITECTURES="${ARCHITECTURES:-}"
-APP_PATH="$DIST_DIR/Codex Watch.app"
-ARCHIVE_PATH="$DIST_DIR/CodexWatch-$VERSION-macOS-$ARCHIVE_ARCH.zip"
+APP_PATH="$DIST_DIR/Vibe View.app"
+ARCHIVE_PATH="$DIST_DIR/VibeView-$VERSION-macOS-$ARCHIVE_ARCH.zip"
 
 if [[ -n "${GITHUB_REF_NAME:-}" && "$GITHUB_REF_NAME" != "v$VERSION" ]]; then
     echo "error: tag $GITHUB_REF_NAME does not match app version v$VERSION" >&2
@@ -44,12 +44,12 @@ cleanup_archive_verify_dir() {
 trap cleanup_archive_verify_dir EXIT
 
 ditto -x -k "$ARCHIVE_PATH" "$ARCHIVE_VERIFY_DIR"
-EXTRACTED_APP_PATH="$ARCHIVE_VERIFY_DIR/Codex Watch.app"
+EXTRACTED_APP_PATH="$ARCHIVE_VERIFY_DIR/Vibe View.app"
 shopt -s dotglob nullglob
 ARCHIVE_ROOT_ITEMS=("$ARCHIVE_VERIFY_DIR"/*)
 shopt -u dotglob nullglob
 if [[ "${#ARCHIVE_ROOT_ITEMS[@]}" -ne 1 || "${ARCHIVE_ROOT_ITEMS[0]}" != "$EXTRACTED_APP_PATH" ]]; then
-    echo "error: archive must contain only Codex Watch.app at its root" >&2
+    echo "error: archive must contain only Vibe View.app at its root" >&2
     exit 1
 fi
 verify_app "$EXTRACTED_APP_PATH"

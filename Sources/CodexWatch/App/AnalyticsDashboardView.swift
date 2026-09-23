@@ -43,7 +43,7 @@ struct AnalyticsDashboardView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Codex Watch Analytics")
+                    Text("Vibe View Analytics")
                         .font(.title2.weight(.semibold))
                     Text("Codex usage reported by ChatGPT")
                         .font(.subheadline)
@@ -102,7 +102,7 @@ struct AnalyticsDashboardView: View {
             ContentUnavailableView(
                 "Analytics unavailable",
                 systemImage: "chart.xyaxis.line",
-                description: Text("Refresh Codex Watch after signing in to ChatGPT.")
+                description: Text("Refresh Vibe View after signing in to ChatGPT.")
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

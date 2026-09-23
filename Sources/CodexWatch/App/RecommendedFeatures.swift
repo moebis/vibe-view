@@ -37,7 +37,7 @@ struct QuotaNotificationPolicy: Sendable {
             threshold: threshold,
             identifier: "codex-watch-weekly-\(threshold)",
             title: threshold == 0 ? "Codex weekly quota is exhausted" : "Codex weekly quota is low",
-            body: "Open Codex Watch to review the remaining quota."
+            body: "Open Vibe View to review the remaining quota."
         )
     }
 }
@@ -87,7 +87,7 @@ struct SafeDiagnostics: Sendable {
 
     var text: String {
         [
-            "Codex Watch \(version)",
+            "Vibe View \(version)",
             "Quota source: \(dataSource.displayName)",
             "Quota: \(quota.rawValue)",
             "Usage analytics: \(usage.rawValue)",

@@ -1,7 +1,9 @@
 # Changelog
 
-## 1.3.3 (build 26) — 2026-09-23
+## 1.3.3 (build 27) — 2026-09-23
 
+- Rename the app and repository to Vibe View while preserving the existing macOS identity and preferences.
+- Add a bounded, validated Claude subscription-quota parser and regression tests as integration groundwork; Claude authentication and menu readings are not enabled yet.
 - Remove the retired Codex Spark menu toggle and its saved preference; suppress legacy Spark quota rows while preserving historical model analytics and other server-reported limits. Do not infer a separate Luna quota.
 - Reuse unchanged Usage projections and Lifetime models in memory, avoid redundant dashboard publications, and defer updates while the dashboard is closed.
 - Refresh menu countdowns when opening the native menu, including in Manual refresh mode.

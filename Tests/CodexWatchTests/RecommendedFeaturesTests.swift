@@ -65,7 +65,7 @@ final class RecommendedFeaturesTests: XCTestCase {
 
         XCTAssertEqual(decision?.identifier, "codex-watch-weekly-10")
         XCTAssertEqual(decision?.title, "Codex weekly quota is low")
-        XCTAssertEqual(decision?.body, "Open Codex Watch to review the remaining quota.")
+        XCTAssertEqual(decision?.body, "Open Vibe View to review the remaining quota.")
     }
 
     func testNotificationPreferenceDefaultsOffAndPersistsExplicitChoice() {
@@ -90,7 +90,7 @@ final class RecommendedFeaturesTests: XCTestCase {
         ).text
 
         XCTAssertEqual(diagnostics, """
-        Codex Watch 1.2.2
+        Vibe View 1.2.2
         Quota source: Codex App Server
         Quota: current
         Usage analytics: stale
@@ -118,7 +118,7 @@ final class RecommendedFeaturesTests: XCTestCase {
                 threshold: 25,
                 identifier: "codex-watch-weekly-25",
                 title: "Codex weekly quota is low",
-                body: "Open Codex Watch to review the remaining quota."
+                body: "Open Vibe View to review the remaining quota."
             )
         ])
     }
