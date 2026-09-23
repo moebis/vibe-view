@@ -28,6 +28,7 @@ final class MenuBarTextTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set(true, forKey: "showCodexSparkStats")
+        defaults.set(true, forKey: FeaturePreferences.notificationsEnabledKey)
         defaults.set("lifetime", forKey: "codexWatch.analyticsSection")
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         let controller = MenuBarController(
@@ -56,7 +57,10 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertFalse(menuTitles.contains { $0.contains("Spark") })
         XCTAssertEqual(statusItem.menu?.showsStateColumn, false)
         for item in statusItem.menu?.items ?? [] where item.title == "Quota Notifications" || item.title == "Launch at Login" {
-            XCTAssertEqual(item.badge?.stringValue, item.state == .on ? "✓" : nil)
+            XCTAssertEqual(item.state, .off, "Native state must not reserve a leading checkmark column")
+            let enabled = item.title == "Quota Notifications"
+            XCTAssertEqual(item.badge?.stringValue, enabled ? "✓" : nil)
+            XCTAssertEqual(item.toolTip, enabled ? "Enabled" : "Disabled")
         }
         XCTAssertTrue(menuTitles.contains("Quota Notifications"))
         XCTAssertTrue(menuTitles.contains("Launch at Login"))

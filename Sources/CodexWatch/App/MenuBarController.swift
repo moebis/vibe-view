@@ -340,7 +340,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     private func toggleItem(title: String, action: Selector, isOn: Bool) -> NSMenuItem {
         let item = actionItem(title: title, action: action, keyEquivalent: "")
-        item.state = isOn ? .on : .off
+        // An on-state can force the leading checkmark gutter on macOS even
+        // when showsStateColumn is false. The trailing badge owns presentation.
+        item.toolTip = isOn ? "Enabled" : "Disabled"
         item.badge = isOn ? NSMenuItemBadge(string: "✓") : nil
         return item
     }
