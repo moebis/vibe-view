@@ -48,6 +48,7 @@ final class AnalyticsWindowController: NSObject, NSWindowDelegate {
         profileStats: CodexProfileStats?,
         profileErrorState: AnalyticsDashboardErrorState?
     ) {
+        guard window != nil else { return }
         model.update(
             dataset: dataset,
             error: errorState,

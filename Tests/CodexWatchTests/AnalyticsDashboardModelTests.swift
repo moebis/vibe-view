@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import XCTest
 @testable import CodexWatch
@@ -170,6 +171,64 @@ final class AnalyticsDashboardModelTests: XCTestCase {
         XCTAssertEqual(model.lifetime?.lifetimeTokens, "30.3B")
         XCTAssertTrue(model.profileIsStale)
         XCTAssertEqual(model.profileErrorState, .profileUnavailable)
+    }
+
+    func testQuotaOnlyUpdatesDoNotPublishUnchangedAnalytics() {
+        let suiteName = "AnalyticsDashboardModelTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let model = AnalyticsDashboardModel(defaults: defaults, calendar: utcCalendar())
+        let now = day("2026-08-20")
+        let dataset = makeDashboardDataset(total: 100)
+        let profile = makeProfile(total: 200, fetchedAt: now)
+        model.update(dataset: dataset, error: nil, profileStats: profile, now: now)
+        var changes = 0
+        let observation = model.objectWillChange.sink { changes += 1 }
+        defer { observation.cancel() }
+
+        model.update(
+            dataset: dataset, error: nil, profileStats: profile,
+            now: now.addingTimeInterval(300)
+        )
+        XCTAssertEqual(changes, 0)
+
+        model.update(dataset: dataset, error: .analyticsUnavailable, profileStats: profile, now: now)
+        XCTAssertTrue(model.isStale)
+        XCTAssertFalse(model.profileIsStale)
+        XCTAssertGreaterThan(changes, 0)
+        XCTAssertEqual(model.projection?.totalTokens, 100)
+
+        // The timestamp may be unchanged even when a corrected response has new values.
+        model.update(dataset: makeDashboardDataset(total: 300), error: nil, now: now)
+        XCTAssertFalse(model.isStale)
+        XCTAssertEqual(model.projection?.totalTokens, 300)
+    }
+
+    func testProjectionCacheInvalidatesForRangeDayCalendarAndCorrectedData() {
+        var cache = UsageAnalyticsProjectionCache()
+        let dataset = makeDashboardDataset(total: 100)
+        let calendar = utcCalendar()
+        let now = day("2026-08-20")
+        let first = cache.projection(dataset: dataset, range: .days30, referenceDate: now, calendar: calendar)
+        XCTAssertEqual(
+            cache.projection(dataset: dataset, range: .days30, referenceDate: now.addingTimeInterval(60), calendar: calendar),
+            first
+        )
+        XCTAssertEqual(cache.projection(dataset: dataset, range: .days7, referenceDate: now, calendar: calendar)?.range, .days7)
+        XCTAssertEqual(
+            cache.projection(dataset: dataset, range: .days30, referenceDate: day("2026-08-19"), calendar: calendar)?.periodEnd,
+            day("2026-08-19")
+        )
+        var shifted = calendar
+        shifted.timeZone = TimeZone(secondsFromGMT: 3_600)!
+        XCTAssertEqual(
+            cache.projection(dataset: dataset, range: .days30, referenceDate: now, calendar: shifted),
+            UsageAnalyticsProjection.make(dataset: dataset, range: .days30, referenceDate: now, calendar: shifted)
+        )
+        XCTAssertEqual(
+            cache.projection(dataset: makeDashboardDataset(total: 200), range: .days30, referenceDate: now, calendar: calendar)?.totalTokens,
+            200
+        )
     }
 
     private func makeDashboardDataset(total: Int64) -> UsageAnalyticsDataset {

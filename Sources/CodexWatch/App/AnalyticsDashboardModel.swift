@@ -41,12 +41,14 @@ final class AnalyticsDashboardModel: ObservableObject {
 
     @Published var section: AnalyticsDashboardSection {
         didSet {
+            guard section != oldValue else { return }
             defaults.set(section.rawValue, forKey: Self.sectionPreferenceKey)
         }
     }
 
     @Published var range: AnalyticsRange {
         didSet {
+            guard range != oldValue else { return }
             defaults.set(range.rawValue, forKey: Self.rangePreferenceKey)
             reproject()
         }
@@ -61,6 +63,7 @@ final class AnalyticsDashboardModel: ObservableObject {
     private let defaults: UserDefaults
     private let calendar: Calendar
     private var dataset: UsageAnalyticsDataset?
+    private var projectionCache = UsageAnalyticsProjectionCache()
     private var profileStats: CodexProfileStats?
     private var referenceDate = Date.now
 
@@ -94,18 +97,21 @@ final class AnalyticsDashboardModel: ObservableObject {
         referenceDate = now
         if let newDataset {
             dataset = newDataset
-            isStale = error != nil
-        } else if error != nil, dataset != nil {
+            if isStale != (error != nil) { isStale = error != nil }
+        } else if error != nil, dataset != nil, !isStale {
             isStale = true
         }
-        errorState = error
+        if errorState != error { errorState = error }
         if let newProfileStats {
-            profileStats = newProfileStats
-            profileIsStale = profileError != nil
-        } else if profileError != nil, profileStats != nil {
+            if profileStats != newProfileStats {
+                profileStats = newProfileStats
+                lifetime = LifetimeDashboardModel(profile: newProfileStats)
+            }
+            if profileIsStale != (profileError != nil) { profileIsStale = profileError != nil }
+        } else if profileError != nil, profileStats != nil, !profileIsStale {
             profileIsStale = true
         }
-        profileErrorState = profileError
+        if profileErrorState != profileError { profileErrorState = profileError }
         reproject()
     }
 
@@ -145,14 +151,14 @@ final class AnalyticsDashboardModel: ObservableObject {
     }
 
     private func reproject() {
-        projection = dataset.flatMap {
-            UsageAnalyticsProjection.make(
+        let nextProjection = dataset.flatMap {
+            projectionCache.projection(
                 dataset: $0,
                 range: range,
                 referenceDate: referenceDate,
                 calendar: calendar
             )
         }
-        lifetime = profileStats.map { LifetimeDashboardModel(profile: $0) }
+        if projection != nextProjection { projection = nextProjection }
     }
 }

@@ -44,16 +44,6 @@ struct QuotaNotificationPolicy: Sendable {
 
 enum FeaturePreferences {
     static let notificationsEnabledKey = "quotaNotificationsEnabled"
-    static let showSparkStatsKey = "showCodexSparkStats"
-
-    static func showSparkStats(in defaults: UserDefaults = .standard) -> Bool {
-        defaults.bool(forKey: showSparkStatsKey)
-    }
-
-    static func setShowSparkStats(_ enabled: Bool, in defaults: UserDefaults = .standard) {
-        defaults.set(enabled, forKey: showSparkStatsKey)
-    }
-
     static func notificationsEnabled(in defaults: UserDefaults = .standard) -> Bool {
         defaults.bool(forKey: notificationsEnabledKey)
     }

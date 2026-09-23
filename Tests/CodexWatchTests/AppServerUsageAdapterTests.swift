@@ -68,8 +68,45 @@ final class AppServerUsageAdapterTests: XCTestCase {
         XCTAssertEqual(snapshot.availableResetCredits, 2)
         XCTAssertEqual(snapshot.resetCredits.first?.id, "RateLimitResetCredit_1")
         XCTAssertEqual(snapshot.rateLimitReachedReason, .workspaceCreditsDepleted)
-        XCTAssertEqual(snapshot.additionalWindows.map(\.id), ["codex-spark-primary"])
+        XCTAssertEqual(snapshot.additionalWindows.map(\.id), ["codex-spark-1-primary"])
         XCTAssertEqual(snapshot.fetchedAt, fetchedAt)
+    }
+
+    func testLongAndCollidingBucketNamesKeepBothWindowsDistinct() {
+        func bucket(_ id: String) -> AppServerRateLimitSnapshot {
+            AppServerRateLimitSnapshot(
+                limitID: id, limitName: id,
+                primary: AppServerRateLimitWindow(
+                    usedPercent: 10, windowDurationMinutes: 300, resetsAt: nil
+                ),
+                secondary: AppServerRateLimitWindow(
+                    usedPercent: 20, windowDurationMinutes: 10_080, resetsAt: nil
+                ),
+                credits: nil, individualLimit: nil, spendControlReached: nil,
+                planType: nil, reachedReason: nil
+            )
+        }
+        let base = bucket("codex")
+        let longName = String(repeating: "a", count: 100)
+        let snapshot = AppServerUsageAdapter.snapshot(
+            from: AppServerRateLimitsResponse(
+                rateLimits: base,
+                rateLimitsByLimitID: [
+                    "codex": base, "long-a": bucket(longName + "a"),
+                    "long-b": bucket(longName + "b"),
+                    "punctuation-a": bucket("codex_other"),
+                    "punctuation-b": bucket("codex-other")
+                ],
+                resetCredits: nil
+            ),
+            fetchedAt: .now
+        )
+        let windows = snapshot.additionalWindows
+        XCTAssertEqual(windows.count, 8)
+        XCTAssertEqual(Set(windows.map(\.id)).count, 8)
+        XCTAssertTrue(windows.allSatisfy { $0.id.utf8.count <= 64 })
+        XCTAssertEqual(windows.filter { $0.window.kind == .weekly }.count, 4)
+        XCTAssertEqual(snapshot.weeklyWindow?.remainingPercent, 80)
     }
 
     func testOfficialUsageMapsExactLifetimeSummaryAndValidatedDailyBuckets() {

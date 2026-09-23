@@ -5,7 +5,7 @@ Codex Watch is a native macOS menu bar app for monitoring ChatGPT Codex quota, t
 ## What it shows
 
 - The rounded percentage remaining in the base weekly Codex quota, always visible in the menu bar.
-- Every valid base and code-review quota window returned by ChatGPT, including remaining percentage, reset countdown, and progress. Codex Spark limits are hidden by default. Enable `Show Codex Spark Stats` beside the refresh and notification preferences in the menu to display them; the choice is remembered.
+- Every valid base and code-review quota window returned by ChatGPT, including remaining percentage, reset countdown, and progress. Retired Codex Spark limits are suppressed, and the obsolete Spark preference is removed. Other model-specific limits appear only when the server returns them; the menu-bar percentage always uses base Codex weekly quota.
 - Deterministic quota pace (`On pace`, `in reserve`, or `in deficit`) once at least 3% of a server-provided window has elapsed. Pace is a linear snapshot, not a probability or entitlement estimate.
 - The recognized ChatGPT plan, credits balance or `Unlimited`, available reset-credit count, and the earliest supported reset-credit expiry when present.
 - A persistent `30 Days` / `Lifetime` selector in the compact menu. The 30-day summary shows total, uncached-input, cached-input, and output tokens plus turns, chats, token coverage, and server data-through date; Lifetime shows exact first-party headline totals, peak daily tokens, longest chat, streaks, and data-through date.
@@ -14,6 +14,12 @@ Codex Watch is a native macOS menu bar app for monitoring ChatGPT Codex quota, t
 - Server-reported workspace credit or usage-limit exhaustion reasons when present, plus projected quota exhaustion when the available timing data supports it.
 
 Model rows report turns, chats, credits, and turn share because the endpoint does not provide per-model token counts. Client rows report server-provided token fields. Dates with activity but no historical token fields are labeled `Activity only`; they are not treated as zero-token or missing days. Period comparisons appear only when both periods have at least 90% token coverage, and the 365-day range does not claim a comparison.
+
+## Current model and quota support
+
+OpenAI [deprecated GPT-5.3-Codex-Spark on September 14, 2026](https://learn.chatgpt.com/docs/changelog). The current [model guide](https://learn.chatgpt.com/docs/models) lists Luna, but neither that guide nor the [pricing documentation](https://learn.chatgpt.com/docs/pricing) establishes a Spark-to-Luna quota migration. Codex Watch does not rename a legacy Spark bucket or invent a separate Luna allowance.
+
+The [app-server protocol](https://learn.chatgpt.com/docs/app-server) exposes server-defined `rateLimitsByLimitId` buckets, with `rateLimits` retained for compatibility. Codex Watch prefers the explicit `codex` base bucket and preserves distinct additional windows even when server identifiers are long or normalize to the same text. Historical model activity in Usage analytics remains unchanged.
 
 ## Controls and refresh behavior
 
@@ -33,6 +39,8 @@ The menu includes:
 Adaptive refresh is the default for a fresh preference domain. It checks every 2 minutes after recent menu interaction, then backs off to 5, 15, or 30 minutes. Low Power Mode and serious or critical thermal pressure use 30 minutes. Opening the menu requests fresh quota only when the last successful snapshot is older than 60 seconds. Bounded Usage analytics and Lifetime profile statistics are fetched on manual refresh and no more than once every 15 minutes automatically.
 
 Quota publishes as soon as it completes, without waiting for slower analytics. Failed app-server connections recover on a bounded 30-second retry cadence. Automatic triggers share active work. A manual refresh replaces older background work, and stale generations cannot publish. Quota errors preserve and dim the last successful percentage with an `Updated … ago` label. Usage and Lifetime failures are independent: each preserves its own last successful in-memory result and marks only that dashboard surface stale.
+
+Unchanged Usage projections and Lifetime presentation models are reused in memory. Quota-only refreshes do not republish unchanged dashboard data, and closed dashboards wait until reopened to update. Menu countdowns are rebuilt when the menu opens, without requiring a network fetch.
 
 Codex app-server rate-limit updates request a coalesced quota-only refresh. The dashboard Refresh control invokes the same manual generation as the menu. Its heatmap uses weekday rows and week columns, and wide data tables scroll rather than clipping when the window is narrow.
 
@@ -60,6 +68,8 @@ The Usage analytics request covers the inclusive trailing 365 calendar days. Sma
 Authenticated responses remain in process memory. Codex Watch never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or third-party network destination.
 
 The ChatGPT routes are internal and may change without notice. Missing or changed optional fields are hidden or marked partial rather than guessed. Codex Watch does not infer absolute token allowances, missing lifetime totals, streaks, plugin use, skill use, reasoning modes, or pricing.
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ## Install
 

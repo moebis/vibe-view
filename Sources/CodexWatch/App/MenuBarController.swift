@@ -13,6 +13,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let persistRefreshFrequency: (RefreshFrequency) -> Void
     private var coordinator: RefreshCoordinator!
     private var snapshot: UsageSnapshot?
+    private var usageProjectionCache = UsageAnalyticsProjectionCache()
+    private var menuProfile: CodexProfileStats?
+    private var menuLifetime: LifetimeDashboardModel?
     private var errorState: MenuBarErrorState?
     private(set) var analyticsStale = false
     private(set) var profileStale = false
@@ -38,6 +41,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         self.accountService = accountService
         self.session = session
         self.defaults = defaults
+        defaults.removeObject(forKey: "showCodexSparkStats")
         self.notificationController = notificationController ?? QuotaNotificationController(
             delivery: UnavailableQuotaNotificationDelivery()
         )
@@ -87,6 +91,10 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func wake() {
         coordinator.trigger(.wake)
+    }
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        rebuildMenu(menu)
     }
 
     func menuWillOpen(_ menu: NSMenu) {
@@ -188,22 +196,22 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         MenuBarButtonStyle.applyRefreshState(to: button, isStale: isStale)
     }
 
-    private func rebuildMenu() {
-        let menu = NSMenu()
+    private func rebuildMenu(_ existingMenu: NSMenu? = nil) {
+        let menu = existingMenu ?? NSMenu()
+        menu.removeAllItems()
         menu.delegate = self
         let progressItem = NSMenuItem()
         progressItem.view = QuotaProgressMenuView(
             presentation: QuotaProgressPresentation(
                 snapshot: snapshot,
                 error: errorState,
-                now: .now,
-                showSparkStats: FeaturePreferences.showSparkStats(in: defaults)
+                now: .now
             )
         )
         menu.addItem(progressItem)
 
         let usagePresentation = snapshot?.analyticsDataset.flatMap { dataset in
-            UsageAnalyticsProjection.make(
+            usageProjectionCache.projection(
                 dataset: dataset,
                 range: .days30,
                 referenceDate: .now
@@ -214,9 +222,13 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 )
             }
         }
-        let lifetimePresentation = snapshot?.profileStats.map { profile in
+        if menuProfile != snapshot?.profileStats {
+            menuProfile = snapshot?.profileStats
+            menuLifetime = menuProfile.map(LifetimeDashboardModel.init)
+        }
+        let lifetimePresentation = menuLifetime.map { model in
             LifetimeAnalyticsPresentation(
-                model: LifetimeDashboardModel(profile: profile),
+                model: model,
                 isStale: profileStale
             )
         }
@@ -240,11 +252,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(actionItem(title: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r"))
         menu.addItem(refreshFrequencyItem())
-        menu.addItem(toggleItem(
-            title: "Show Codex Spark Stats",
-            action: #selector(toggleSparkStats),
-            isOn: FeaturePreferences.showSparkStats(in: defaults)
-        ))
         menu.addItem(toggleItem(
             title: "Quota Notifications",
             action: #selector(toggleQuotaNotifications),
@@ -292,7 +299,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(versionItem)
         menu.addItem(.separator())
         menu.addItem(actionItem(title: "Quit Codex Watch", action: #selector(quit), keyEquivalent: "q"))
-        statusItem.menu = menu
+        if statusItem.menu !== menu {
+            statusItem.menu = menu
+        }
     }
 
     private func refreshFrequencyItem() -> NSMenuItem {
@@ -398,11 +407,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
                 do { try await Task.sleep(for: .seconds(30)) } catch { return }
             }
         }
-    }
-
-    @objc private func toggleSparkStats() {
-        FeaturePreferences.setShowSparkStats(!FeaturePreferences.showSparkStats(in: defaults), in: defaults)
-        rebuildMenu()
     }
 
     @objc private func toggleQuotaNotifications() {

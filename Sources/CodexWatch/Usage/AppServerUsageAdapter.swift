@@ -16,12 +16,15 @@ enum AppServerUsageAdapter {
         ].compactMap { $0 }
 
         var additionalWindows: [NamedUsageWindow] = []
-        for (key, value) in (response.rateLimitsByLimitID ?? [:]).sorted(by: { $0.key < $1.key }) {
+        let buckets = (response.rateLimitsByLimitID ?? [:]).sorted(by: { $0.key < $1.key })
+        for (index, bucket) in buckets.enumerated() {
+            let (key, value) = bucket
             if key == base?.limitID || key == "codex" { continue }
-            let baseID = boundedSlug(value.limitID ?? key)
+            let baseID = boundedSlug(value.limitID ?? key).prefix(40)
             guard !baseID.isEmpty else { continue }
             for (role, source) in [("primary", value.primary), ("secondary", value.secondary)] {
-                let id = boundedID("\(baseID)-\(role)")
+                // Reserve the role suffix and disambiguate equal/truncated slugs.
+                let id = "\(baseID)-\(index)-\(role)"
                 guard let window = makeWindow(id: id, value: source) else { continue }
                 additionalWindows.append(NamedUsageWindow(
                     id: id,
@@ -197,10 +200,6 @@ enum AppServerUsageAdapter {
               value >= 0,
               value <= Int64(Int.max) else { return nil }
         return Int(value)
-    }
-
-    private static func boundedID(_ value: String) -> String {
-        boundedText(value, maximumBytes: 64)
     }
 
     private static func boundedSlug(_ value: String) -> String {

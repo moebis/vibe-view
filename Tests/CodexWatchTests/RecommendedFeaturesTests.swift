@@ -78,20 +78,6 @@ final class RecommendedFeaturesTests: XCTestCase {
         XCTAssertTrue(FeaturePreferences.notificationsEnabled(in: defaults))
     }
 
-    func testSparkPreferenceDefaultsOffAndPersistsBothChoices() {
-        let suiteName = "SparkPreferenceTests-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-
-        XCTAssertFalse(FeaturePreferences.showSparkStats(in: defaults))
-        XCTAssertNil(defaults.object(forKey: FeaturePreferences.showSparkStatsKey))
-        FeaturePreferences.setShowSparkStats(true, in: defaults)
-        XCTAssertTrue(FeaturePreferences.showSparkStats(in: UserDefaults(suiteName: suiteName)!))
-        FeaturePreferences.setShowSparkStats(false, in: defaults)
-        XCTAssertFalse(FeaturePreferences.showSparkStats(in: UserDefaults(suiteName: suiteName)!))
-        XCTAssertFalse(FeaturePreferences.notificationsEnabled(in: defaults))
-    }
-
     func testSafeDiagnosticsReportsOnlyOperationalState() {
         let diagnostics = SafeDiagnostics(
             version: "1.2.2",

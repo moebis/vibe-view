@@ -24,6 +24,11 @@ final class MenuBarTextTests: XCTestCase {
     }
 
     func testMenuOffersOfficialUsageAnalyticsWithoutRestoringUpdates() {
+        let suiteName = "RetiredSparkTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(true, forKey: "showCodexSparkStats")
+        defaults.set("lifetime", forKey: "codexWatch.analyticsSection")
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         let controller = MenuBarController(
             statusItem: statusItem,
@@ -31,16 +36,24 @@ final class MenuBarTextTests: XCTestCase {
                 environment: [:],
                 homeDirectory: URL(fileURLWithPath: "/definitely/not/the-test-home")
             ),
-            session: URLSession(configuration: .ephemeral)
+            session: URLSession(configuration: .ephemeral),
+            defaults: defaults
         )
         controller.start()
         defer { controller.stop() }
 
+        XCTAssertNil(defaults.object(forKey: "showCodexSparkStats"))
+        XCTAssertEqual(defaults.string(forKey: "codexWatch.analyticsSection"), "lifetime")
+        if let menu = statusItem.menu {
+            controller.menuNeedsUpdate(menu)
+            XCTAssertTrue(statusItem.menu === menu)
+        }
         let menuTitles = statusItem.menu?.items.map(\.title) ?? []
 
         XCTAssertTrue(menuTitles.contains("Open Usage Analytics…"))
         XCTAssertTrue(menuTitles.contains("Open Analytics Dashboard…"))
         XCTAssertTrue(menuTitles.contains("Refresh Frequency"))
+        XCTAssertFalse(menuTitles.contains { $0.contains("Spark") })
         XCTAssertTrue(menuTitles.contains("Quota Notifications"))
         XCTAssertTrue(menuTitles.contains("Launch at Login"))
         XCTAssertTrue(menuTitles.contains("Copy Diagnostics"))
@@ -677,7 +690,7 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(presentation.quotaWindows.isEmpty)
     }
 
-    func testSparkPreferenceControlsVersionedAndLegacyRowsWithoutChangingBaseQuota() {
+    func testRetiredSparkRowsStayHiddenWithoutChangingBaseOrCurrentModelQuota() {
         let now = Date(timeIntervalSince1970: 2_000_000_000)
         let sparkNames = [
             ("codex-spark", "Codex Spark 5-hour"),
@@ -686,7 +699,7 @@ final class MenuBarTextTests: XCTestCase {
             ("gpt-5-3-codex-spark-secondary", "GPT-5.3-Codex-Spark Weekly"),
             ("opaque-model-id", "GPT-5.3-CODEX-SPARK Weekly")
         ]
-        let namedWindows = (sparkNames + [("codex-sparkle", "Codex Sparkle")]).map { id, title in
+        let namedWindows = (sparkNames + [("codex-sparkle", "Codex Sparkle"), ("gpt-6-luna", "GPT-6 Luna")]).map { id, title in
             NamedUsageWindow(id: id, title: title, window: UsageWindow(
                 id: id, kind: .weekly, usedPercent: 0,
                 resetAt: now.addingTimeInterval(6 * 86_400), durationSeconds: 7 * 86_400
@@ -697,19 +710,14 @@ final class MenuBarTextTests: XCTestCase {
             additionalWindows: namedWindows
         )
         let hidden = QuotaProgressPresentation(snapshot: snapshot, error: nil, now: now)
-        let shown = QuotaProgressPresentation(snapshot: snapshot, error: nil, now: now, showSparkStats: true)
 
-        XCTAssertEqual(hidden.quotaWindows.map(\.title), ["Weekly", "Codex Sparkle"])
-        XCTAssertEqual(shown.quotaWindows.map(\.title), ["Weekly"] + namedWindows.map(\.title))
+        XCTAssertEqual(hidden.quotaWindows.map(\.title), ["Weekly", "Codex Sparkle", "GPT-6 Luna"])
         XCTAssertEqual(hidden.quotaValue, "40%")
-        XCTAssertEqual(shown.quotaValue, hidden.quotaValue)
         XCTAssertEqual(snapshot.additionalWindows.count, namedWindows.count)
 
         let hiddenLabels = textValues(in: QuotaProgressMenuView(presentation: hidden))
-        let shownLabels = textValues(in: QuotaProgressMenuView(presentation: shown))
         for (_, title) in sparkNames {
             XCTAssertFalse(hiddenLabels.contains("\(title) remaining"))
-            XCTAssertTrue(shownLabels.contains("\(title) remaining"))
         }
     }
 
