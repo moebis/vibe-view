@@ -3,7 +3,8 @@ import AppKit
 /// Shared margins and content-driven sizing for the custom portions of the menu.
 class MenuContentView: NSView {
     static let width: CGFloat = 300
-    static let horizontalInset: CGFloat = 14
+    // Match the native action rows and separators with the state gutter hidden.
+    static let horizontalInset: CGFloat = 16
     static let verticalInset: CGFloat = 10
 
     let stack = NSStackView()
