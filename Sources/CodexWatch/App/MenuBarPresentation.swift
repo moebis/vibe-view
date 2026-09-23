@@ -308,7 +308,7 @@ final class QuotaProgressMenuView: MenuContentView {
     init(presentation: QuotaProgressPresentation) {
         super.init(spacing: 6, alignment: .leading)
 
-        add(Self.labelRow(title: "Plan", value: presentation.planValue), to: stack)
+        add(Self.labelRow(title: "Codex plan", value: presentation.planValue), to: stack)
         if let creditsRemainingValue = presentation.creditsRemainingValue {
             add(Self.labelRow(title: "Credits remaining", value: creditsRemainingValue), to: stack)
         }

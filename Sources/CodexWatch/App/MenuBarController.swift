@@ -8,6 +8,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let accountService: (any CodexAccountServing)?
     private let session: URLSession
     private let defaults: UserDefaults
+    private let claude: ClaudeQuotaController
     private let notificationController: QuotaNotificationController
     private let launchAtLoginSetting: LaunchAtLoginSetting
     private let persistRefreshFrequency: (RefreshFrequency) -> Void
@@ -41,6 +42,14 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         self.accountService = accountService
         self.session = session
         self.defaults = defaults
+        let claudeClient = ClaudeUsageClient(session: session)
+        self.claude = ClaudeQuotaController(defaults: defaults) { allowInteraction in
+            let credentials = try await Task.detached(priority: .utility) {
+                try ClaudeAuthReader().read(allowInteraction: allowInteraction)
+            }.value
+            try Task.checkCancellation()
+            return try await claudeClient.fetch(credentials: credentials)
+        }
         defaults.removeObject(forKey: "showCodexSparkStats")
         self.notificationController = notificationController ?? QuotaNotificationController(
             delivery: UnavailableQuotaNotificationDelivery()
@@ -51,6 +60,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menuAnalyticsSection = MenuAnalyticsSection.load(from: defaults)
         self.persistRefreshFrequency = persistRefreshFrequency
         super.init()
+        claude.onChange = { [weak self] in self?.rebuildMenu() }
         coordinator = RefreshCoordinator(
             frequency: refreshFrequency,
             fetch: { [weak self] request in
@@ -80,6 +90,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
 
     func stop() {
         coordinator.stop()
+        claude.stop()
         rateLimitUpdatesTask?.cancel()
         rateLimitUpdatesTask = nil
         if let accountService {
@@ -120,6 +131,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func fetch(request: RefreshRequest) async -> RefreshResult {
+        claude.refresh(force: request.trigger == .manual)
         let authReader = authReader
         let credentials = try? await Task.detached(priority: .utility) {
             try authReader.read()
@@ -210,6 +222,14 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             )
         )
         menu.addItem(progressItem)
+        if claude.isEnabled {
+            menu.addItem(.separator())
+            let claudeItem = NSMenuItem()
+            claudeItem.view = ClaudeQuotaMenuView(
+                snapshot: claude.snapshot, error: claude.error, isRefreshing: claude.isRefreshing
+            )
+            menu.addItem(claudeItem)
+        }
 
         let usagePresentation = snapshot?.analyticsDataset.flatMap { dataset in
             usageProjectionCache.projection(
@@ -254,7 +274,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menu.addItem(actionItem(title: "Refresh Now", action: #selector(refreshNow), keyEquivalent: "r"))
         menu.addItem(refreshFrequencyItem())
         menu.addItem(toggleItem(
-            title: "Quota Notifications",
+            title: "Codex Quota Notifications",
             action: #selector(toggleQuotaNotifications),
             isOn: FeaturePreferences.notificationsEnabled(in: defaults)
         ))
@@ -267,24 +287,29 @@ final class MenuBarController: NSObject, NSMenuDelegate {
            count > 0,
            accountService != nil {
             let resetItem = actionItem(
-                title: "Use Reset Credit…",
+                title: "Use Codex Reset Credit…",
                 action: #selector(useResetCredit),
                 keyEquivalent: ""
             )
             resetItem.isEnabled = !isResetInFlight
             menu.addItem(resetItem)
         }
+        menu.addItem(actionItem(title: "Connect Claude…", action: #selector(connectClaude), keyEquivalent: ""))
+        if claude.isEnabled {
+            menu.addItem(actionItem(title: "Disconnect Claude", action: #selector(disconnectClaude), keyEquivalent: ""))
+            menu.addItem(actionItem(title: "Open Claude Usage…", action: #selector(openClaudeUsage), keyEquivalent: ""))
+        }
         menu.addItem(actionItem(title: "Open ChatGPT", action: #selector(openChatGPT), keyEquivalent: "o"))
         menu.addItem(
             actionItem(
-                title: "Open Analytics Dashboard…",
+                title: "Open Codex Analytics…",
                 action: #selector(openAnalyticsDashboard),
                 keyEquivalent: "d"
             )
         )
         menu.addItem(
             actionItem(
-                title: "Open Usage Analytics…",
+                title: "Open Codex Usage…",
                 action: #selector(openUsageAnalytics),
                 keyEquivalent: ""
             )
@@ -303,6 +328,29 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         if statusItem.menu !== menu {
             statusItem.menu = menu
         }
+    }
+
+    @objc private func connectClaude() {
+        let alert = NSAlert()
+        alert.messageText = "Connect your Claude plan"
+        alert.informativeText = "Vibe View reads Claude Code’s existing sign-in to show the subscription quota shared with Claude desktop. macOS may ask you to allow Keychain access. No conversations are started.\n\nIf needed, run claude auth login in Terminal first. Disconnecting Vibe View leaves Claude Code signed in."
+        alert.addButton(withTitle: "Connect")
+        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: "Copy Sign-in Command")
+        NSApp.activate(ignoringOtherApps: true)
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: claude.connect()
+        case .alertThirdButtonReturn:
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString("claude auth login", forType: .string)
+        default: break
+        }
+    }
+
+    @objc private func disconnectClaude() { claude.disconnect() }
+
+    @objc private func openClaudeUsage() {
+        NSWorkspace.shared.open(URL(string: "https://claude.ai/settings/usage")!)
     }
 
     private func refreshFrequencyItem() -> NSMenuItem {

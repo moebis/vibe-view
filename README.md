@@ -1,10 +1,12 @@
 # Vibe View
 
-Vibe View is a native macOS menu bar app for monitoring ChatGPT Codex quota, token usage, and activity. Version 1.3.3 prefers Codex's managed-auth app-server account APIs, preserves a bounded compatibility path for richer analytics, and adds explicit quota alerts and account controls while keeping the menu-bar percentage focused on the base weekly quota.
+Vibe View is a native macOS menu bar app for Codex and Claude subscription quotas, with Codex token usage and activity analytics. Version 1.3.3 prefers Codex's managed-auth app-server account APIs, preserves a bounded compatibility path for richer analytics, and adds explicit quota alerts and account controls while keeping the menu-bar percentage focused on the base weekly quota.
 
 The app was formerly Codex Watch. The macOS bundle identifier (`com.moebis.codexwatch`), executable, and preference keys remain stable so upgrades retain your settings. The GitHub repository is now [`moebis/vibe-view`](https://github.com/moebis/vibe-view).
 
-Claude Code support is in development. This build retains Codex monitoring; it does not yet connect to Claude or display Claude quota. Claude desktop and Claude Code share [subscription usage limits](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work); API spending and session context usage are separate measures.
+Claude subscription quota is available through **Connect Claude…**. Sign in with the official [Claude Code CLI](https://code.claude.com/docs/en/cli-reference) using `claude auth login`, then connect in Vibe View and allow Keychain access if macOS asks. The five-hour and weekly limits are [shared with Claude desktop and Claude Code](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work). Claude appears in its own menu section; the menu-bar percentage and analytics dashboard remain Codex-specific.
+
+Vibe View reads the CLI's default Keychain item (or its bounded fallback file) and calls Anthropic's internal read-only usage endpoint. It does not start model sessions, scan conversation history, copy credentials, or handle API billing. **Disconnect Claude** disables Vibe View's reads without logging out the CLI. Expired/revoked sign-ins require `claude auth login` again. Custom `CLAUDE_CONFIG_DIR` setups are not currently supported. The compatibility endpoint may change; missing data shows unavailable, never an invented allowance.
 
 ## What it shows
 
@@ -71,7 +73,7 @@ GET https://chatgpt.com/backend-api/wham/profiles/me
 
 The Usage analytics request covers the inclusive trailing 365 calendar days. Smaller views are projected locally from that one bounded response. The profile request supplies exact Lifetime headline totals and its own daily activity buckets; those values are never reconstructed from incomplete historical rows. Each response is capped at one mebibyte. The production network session is ephemeral, uncached, cookieless, and rejects redirects to another host.
 
-Authenticated responses remain in process memory. Vibe View never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or third-party network destination.
+Authenticated responses remain in process memory. Vibe View never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or unconfigured network destination. The explicitly connected Claude provider adds only Anthropic quota requests.
 
 The ChatGPT routes are internal and may change without notice. Missing or changed optional fields are hidden or marked partial rather than guessed. Vibe View does not infer absolute token allowances, missing lifetime totals, streaks, plugin use, skill use, reasoning modes, or pricing.
 

@@ -50,6 +50,7 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 | App-server transport | `CodexAppServerClient`, `ProcessAppServerLineTransport` | Managed-auth JSONL RPC over a local Codex child process with bounded line framing |
 | Compatibility transport | `CodexAuthReader`, `CodexUsageClient` | Optional bounded local credential read and bounded authenticated GET requests |
 | Source strategy | `CodexAccountService`, `CodexDataSourceStrategy` | Prefer official quota, retain narrow compatibility fallback, and merge independent capability results |
+| Claude subscription | `ClaudeAuthReader`, `ClaudeUsageClient`, `ClaudeQuotaController`, `ClaudeQuotaMenuView` | Opt-in CLI credential read, bounded Anthropic quota, independent refresh and presentation |
 | Decoding | Usage, analytics, and profile DTOs | Untrusted payload validation and fail-closed conversion |
 | Domain | `UsageSnapshot`, analytics/profile models | Immutable sendable state and pure calculations |
 | Dashboard | Dashboard models/views, `AnalyticsWindowController` | Range projection, Lifetime presentation, reusable native window |
@@ -60,17 +61,21 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 
 - `CodexAppServerClient` launches a locally installed Codex executable with the `app-server` command, completes the required initialize handshake with experimental APIs disabled, and permits only the account methods Vibe View uses. Short pipe replies are consumed with POSIX reads without waiting for a full buffer or EOF. Stdio messages have a one-mebibyte ceiling and each request has a 20-second timeout. Child stderr is discarded so private server diagnostics cannot enter app output.
 - The app-server command is currently documented as experimental. Vibe View therefore preserves its bounded same-host HTTPS path as a compatibility fallback and as the richer Usage analytics source.
-- Managed ChatGPT authentication is owned by Codex and may use its configured file, keyring, or automatic credential store. Vibe View does not read or copy keyring credentials.
+- Managed ChatGPT authentication is owned by Codex and may use its configured file, keyring, or automatic credential store. Vibe View does not read or copy Codex keyring credentials.
 - When available, `CodexAuthReader` reads only `auth.json`, requires a regular file, and enforces the one-mebibyte ceiling while reading from the opened handle. The read runs at utility priority outside the main actor.
 - `SecureUsageSession` is ephemeral, uncached, and cookieless. Authenticated requests require HTTPS and the original ChatGPT host and effective port; cross-host redirects are rejected.
 - `CodexUsageClient` consumes response bytes incrementally and stops after one mebibyte. The reset-credit detail request is optional and has a shorter timeout.
-- The only authenticated destinations are the quota, reset-credit, bounded daily analytics, and profile paths on the original ChatGPT origin.
+- Codex authenticated destinations are the quota, reset-credit, bounded daily analytics, and profile paths on the original ChatGPT origin.
 - Profile identity and editing fields are ignored. Lifetime prefers validated same-host profile statistics and falls back to the reduced official account-usage summary, never local sessions or a partial-year sum.
 - CSV is written atomically only after `NSSavePanel` returns a user-selected destination. Lifetime data is not exported.
 - Quota notifications are off by default and contain no quota percentage or account value. macOS owns notification authorization and delivery persistence. Launch at Login is changed only through the user-selected menu toggle.
 - Reset-credit consumption requires a confirmation, uses the documented idempotency key, retains an uncertain request only in memory for safe retry, and always refetches after an exact server outcome.
 - Copy Diagnostics writes only version, selected source, capability freshness, and settings state to the pasteboard. It excludes credentials, account identifiers, paths, usage values, and error details.
-- The app does not inspect rollout logs, prompts, browser cookies, Keychain browser material, process lists, or the Codex task database. It has no updater, telemetry, WebView, executable plugin system, or third-party network destination.
+- The app does not inspect rollout logs, prompts, browser cookies, Keychain browser material, process lists, or the Codex task database. It has no updater, telemetry, WebView, or executable plugin system. Claude is the explicitly authorized additional provider; see decision 012 and CLAUDE-QUOTA-017.
+
+## Claude provider boundary
+
+An explicitly connected Claude Code login supplies a read-only GET to `https://api.anthropic.com/api/oauth/usage`. Read only the default CLI Keychain credential or its bounded regular-file fallback, off the main actor. No credential copying, refresh-token handling, conversation reading, or model call occurs. The shared ephemeral same-host session bounds the body to 64 KiB; parsing ignores identity and billing fields. The menu reports independent subscription windows and resets, with unavailable states on auth/network/schema failure. The Codex status-bar percentage and historical dashboard remain Codex-specific. Claude's controller coalesces requests, obeys Retry-After even for manual refresh, and rejects results after shutdown/disconnect. The CLI owns credential renewal. There is no embedded login or persistent Claude data store.
 
 ## Concurrency and lifecycle
 
@@ -114,7 +119,7 @@ Use `docs/agent-harness.md` to select one proportional verification path. `verif
 
 Bundles are ad-hoc signed with hardened runtime; Developer ID and notarization are not configured. Synced folders can reattach Finder metadata and break strict signatures. Verify the exact built, installed, or extracted artifact without weakening signature checks.
 
-The runtime is entirely local, with outbound ChatGPT requests. There is no project-owned production service, database, or Docker deployment configured. Keep the installed app and one latest verified rollback bundle; user preferences and CSV exports are separate from app-bundle recovery. Remove obsolete project-owned build/sanitizer trees and temporary artifacts after they are no longer in use. Do not prune shared developer caches, other projects, or system backups.
+The runtime is entirely local, with outbound ChatGPT and explicitly enabled Anthropic quota requests. There is no project-owned production service, database, or Docker deployment configured. Keep the installed app and one latest verified rollback bundle; user preferences and CSV exports are separate from app-bundle recovery. Remove obsolete project-owned build/sanitizer trees and temporary artifacts after they are no longer in use. Do not prune shared developer caches, other projects, or system backups.
 
 Inspect `.github/workflows/` before every push. Existing main/PR and version-tag triggers can start hosted Actions; routine directly verified pushes must use a supported skip marker. Tags require separate release authorization and must match `CFBundleShortVersionString`. Do not treat an automatic trigger as permission to spend hosted quota.
 

@@ -23,9 +23,9 @@ contracts:
     last_verified_commit: 018225f
 
   - id: PRIVACY-BOUNDARY-003
-    title: Credentials and private Codex data remain minimally exposed
+    title: Credentials and private provider data remain minimally exposed
     status: active
-    statement: The app prefers managed ChatGPT authentication through a local Codex app-server child process and optionally reads only the local auth file through an off-main, opened-handle read that enforces a one-mebibyte ceiling while consuming bytes. App-server JSONL lines and compatibility HTTPS responses each have a one-mebibyte ceiling. Compatibility credentials go only to the original ChatGPT HTTPS host. Credentials and authenticated responses remain in process memory; child stderr is discarded. The app never contacts an update service, scans sessions, reads prompts, logs sensitive data, caches responses, or stores cookies. Analytics leaves process memory only for a user-confirmed CSV. Notification text contains no quota value, and copied diagnostics contain operational state only.
+    statement: The app prefers managed ChatGPT authentication through a local Codex app-server child process and optionally reads only the local auth file through an off-main, opened-handle read that enforces a one-mebibyte ceiling while consuming bytes. App-server JSONL lines and compatibility HTTPS responses each have a one-mebibyte ceiling. Codex compatibility credentials go only to the original ChatGPT HTTPS host. Opted-in Claude quota reads use the default Claude Code Keychain item or its bounded fallback credential file, send its access token only to api.anthropic.com, and never copy or refresh stored credentials. CLAUDE-QUOTA-017 governs this separate provider. Credentials and authenticated responses remain in process memory; child stderr is discarded. The app never contacts an update service, scans sessions, reads prompts, logs sensitive data, caches responses, or stores cookies. Analytics leaves process memory only for a user-confirmed CSV. Notification text contains no quota value, and copied diagnostics contain operational state only.
     rationale: The app handles an access token and must minimize both data access and exfiltration paths.
     source: security-review
     owner: project-maintainer
@@ -305,3 +305,27 @@ contracts:
     supersedes: []
     superseded_by: null
     last_verified_commit: a628a8c
+
+  - id: CLAUDE-QUOTA-017
+    title: Claude subscription quotas use explicit CLI connection and separate state
+    status: active
+    statement: Connecting Claude enables read-only subscription utilization from the internal api.anthropic.com/api/oauth/usage endpoint using Claude Code's default Keychain credential or its one-mebibyte bounded regular-file fallback. Only an explicit Connect action may show Keychain authorization UI. User-requested installation may enable silent reads after verified CLI sign-in. Reject expired credentials, API keys, missing profile scope, custom CLAUDE_CONFIG_DIR, malformed percentages, and responses exceeding 64 kibibytes. Five-hour, weekly, and available model windows belong to the Claude plan shared with desktop; do not infer token allowances or historical analytics. Refreshes coalesce independently, respect a 60-second automatic floor and bounded Retry-After, cancel on disconnect or shutdown, reject late publication, and clear unavailable values on failure. Disconnect disables Vibe View's access without logging out Claude Code. Codex status-bar percentage, reset credits, notifications, and analytics retain their original meaning.
+    rationale: Claude desktop and Code share a subscription, while API billing and context utilization are different measures. Reusing an explicitly authorized CLI credential avoids browser-cookie extraction, embedded-login fragility, and extra model calls.
+    source: user-confirmed-and-first-party-client
+    owner: project-maintainer
+    risk: critical
+    scope:
+      include: [claude-quota, claude-cli-authentication, status-menu, refresh-lifecycle]
+      exclude: [claude-conversations, browser-credentials, model-invocations, credential-refresh, api-billing, claude-history]
+    examples:
+      positive: A signed-in user sees independent Claude five-hour and weekly percentages while the menu-bar icon continues to show Codex weekly remaining.
+      negative: An API key supplies subscription quota, a failed response becomes zero usage, or disconnect logs the CLI out.
+    guards:
+      - Tests/CodexWatchTests/ClaudeAuthReaderTests.swift
+      - Tests/CodexWatchTests/ClaudeUsageClientTests.swift
+      - Tests/CodexWatchTests/ClaudeUsageSnapshotTests.swift
+      - Tests/CodexWatchTests/ClaudeQuotaControllerTests.swift
+      - "manual: verify native menu, explicit Keychain authorization, and live authenticated quota without logging values"
+    supersedes: []
+    superseded_by: null
+    last_verified_commit: e265de2

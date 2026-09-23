@@ -10,4 +10,6 @@ Read only decisions relevant to the affected contracts. These active records ret
 | [010-bounded-io-and-concurrency](010-bounded-io-and-concurrency.md) | active | `PRIVACY-BOUNDARY-003`, `REFRESH-COORDINATION-013` |
 | [011-app-server-and-explicit-user-controls](011-app-server-and-explicit-user-controls.md) | active | `PRIVACY-BOUNDARY-003`, `RESET-CREDITS-006`, `REFRESH-COORDINATION-013`, `DATA-SOURCE-015`, `USER-CONTROLS-016` |
 
+| [012-claude-cli-quota](012-claude-cli-quota.md) | active | `PRIVACY-BOUNDARY-003`, `CLAUDE-QUOTA-017` |
+
 Superseded decision records are retained in Git history, not in the current authority set.

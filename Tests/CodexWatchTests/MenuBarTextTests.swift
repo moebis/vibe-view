@@ -51,18 +51,18 @@ final class MenuBarTextTests: XCTestCase {
         }
         let menuTitles = statusItem.menu?.items.map(\.title) ?? []
 
-        XCTAssertTrue(menuTitles.contains("Open Usage Analytics…"))
-        XCTAssertTrue(menuTitles.contains("Open Analytics Dashboard…"))
+        XCTAssertTrue(menuTitles.contains("Open Codex Usage…"))
+        XCTAssertTrue(menuTitles.contains("Open Codex Analytics…"))
         XCTAssertTrue(menuTitles.contains("Refresh Frequency"))
         XCTAssertFalse(menuTitles.contains { $0.contains("Spark") })
         XCTAssertEqual(statusItem.menu?.showsStateColumn, false)
-        for item in statusItem.menu?.items ?? [] where item.title == "Quota Notifications" || item.title == "Launch at Login" {
+        for item in statusItem.menu?.items ?? [] where item.title == "Codex Quota Notifications" || item.title == "Launch at Login" {
             XCTAssertEqual(item.state, .off, "Native state must not reserve a leading checkmark column")
-            let enabled = item.title == "Quota Notifications"
+            let enabled = item.title == "Codex Quota Notifications"
             XCTAssertEqual(item.badge?.stringValue, enabled ? "✓" : nil)
             XCTAssertEqual(item.toolTip, enabled ? "Enabled" : "Disabled")
         }
-        XCTAssertTrue(menuTitles.contains("Quota Notifications"))
+        XCTAssertTrue(menuTitles.contains("Codex Quota Notifications"))
         XCTAssertTrue(menuTitles.contains("Launch at Login"))
         XCTAssertTrue(menuTitles.contains("Copy Diagnostics"))
         XCTAssertFalse(menuTitles.contains { $0.localizedCaseInsensitiveContains("update") })
@@ -113,7 +113,7 @@ final class MenuBarTextTests: XCTestCase {
             profileStale: false
         ))
 
-        XCTAssertTrue(statusItem.menu?.items.contains { $0.title == "Use Reset Credit…" } == true)
+        XCTAssertTrue(statusItem.menu?.items.contains { $0.title == "Use Codex Reset Credit…" } == true)
     }
 
     func testRefreshPolicyLimitsAutomaticAnalyticsButAllowsManualRefresh() {
@@ -815,7 +815,7 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertEqual(NeutralProgressIndicator.trackColor, .separatorColor)
         XCTAssertEqual(view.frame.size.width, QuotaProgressMenuView.width)
         assertContentFits(view)
-        XCTAssertTrue(textValues(in: view).contains("Plan"))
+        XCTAssertTrue(textValues(in: view).contains("Codex plan"))
         XCTAssertTrue(textValues(in: view).contains("Unavailable"))
     }
 
