@@ -329,12 +329,5 @@ struct LossyUsageClientDTO: Decodable {
 }
 
 private func boundedAnalyticsIdentifier(_ value: String?) -> String? {
-    guard let value else { return nil }
-    var result = ""
-    for character in value.trimmingCharacters(in: .whitespacesAndNewlines) {
-        let candidate = result + String(character)
-        guard candidate.utf8.count <= 128 else { break }
-        result = candidate
-    }
-    return result.isEmpty ? nil : result
+    BoundedText.trimmedNonEmpty(value)
 }

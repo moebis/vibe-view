@@ -115,6 +115,18 @@ final class AnalyticsDashboardModel: ObservableObject {
         reproject()
     }
 
+    func discardAccountData() {
+        dataset = nil
+        profileStats = nil
+        projectionCache = UsageAnalyticsProjectionCache()
+        projection = nil
+        lifetime = nil
+        isStale = false
+        profileIsStale = false
+        errorState = .analyticsUnavailable
+        profileErrorState = .profileUnavailable
+    }
+
     func csvString() throws -> String {
         guard let projection else { throw ModelError.dataUnavailable }
         return try UsageAnalyticsCSVExporter.string(projection: projection, calendar: calendar)

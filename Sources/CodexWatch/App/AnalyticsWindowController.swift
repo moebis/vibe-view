@@ -58,6 +58,12 @@ final class AnalyticsWindowController: NSObject, NSWindowDelegate {
         )
     }
 
+    func discardAccountData() {
+        // Clear the model even when its window is closed, so reopening or CSV
+        // export cannot recover the previous account's cached values.
+        model.discardAccountData()
+    }
+
     func windowWillClose(_ notification: Notification) {
         guard let closingWindow = notification.object as? NSWindow,
               closingWindow === window else { return }

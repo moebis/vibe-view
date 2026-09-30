@@ -95,7 +95,8 @@ final class RefreshCoordinator {
         )
 
         activeTask = Task { [weak self] in
-            guard let self else { return }
+            guard let self, !Task.isCancelled, !self.stopped,
+                  requestGeneration == self.generation else { return }
             let result = await self.fetch(request)
             self.finish(result: result, generation: requestGeneration)
         }

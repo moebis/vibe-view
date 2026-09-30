@@ -28,6 +28,7 @@ final class MenuBarTextTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
         defaults.set(true, forKey: "showCodexSparkStats")
+        defaults.set(true, forKey: "vibeView.claudeQuotaEnabled")
         defaults.set(true, forKey: FeaturePreferences.notificationsEnabledKey)
         defaults.set("lifetime", forKey: "codexWatch.analyticsSection")
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -44,6 +45,8 @@ final class MenuBarTextTests: XCTestCase {
         defer { controller.stop() }
 
         XCTAssertNil(defaults.object(forKey: "showCodexSparkStats"))
+        XCTAssertNil(defaults.object(forKey: "vibeView.claudeQuotaEnabled"))
+        XCTAssertEqual(statusItem.autosaveName, MenuBarButtonStyle.autosaveName)
         XCTAssertEqual(defaults.string(forKey: "codexWatch.analyticsSection"), "lifetime")
         if let menu = statusItem.menu {
             controller.menuNeedsUpdate(menu)
@@ -55,6 +58,7 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(menuTitles.contains("Open Codex Analytics…"))
         XCTAssertTrue(menuTitles.contains("Refresh Frequency"))
         XCTAssertFalse(menuTitles.contains { $0.contains("Spark") })
+        XCTAssertFalse(menuTitles.contains { $0.contains("Claude") })
         XCTAssertEqual(statusItem.menu?.showsStateColumn, false)
         for item in statusItem.menu?.items ?? [] where item.title == "Codex Quota Notifications" || item.title == "Launch at Login" {
             XCTAssertEqual(item.state, .off, "Native state must not reserve a leading checkmark column")
@@ -116,6 +120,28 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(statusItem.menu?.items.contains { $0.title == "Use Codex Reset Credit…" } == true)
     }
 
+    func testAccountChangeImmediatelyRemovesPreviousQuotaAndAnalytics() {
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let controller = MenuBarController(statusItem: statusItem, refreshFrequency: .manual)
+        defer { controller.stop() }
+        controller.apply(result: RefreshResult(
+            snapshot: UsageSnapshot(
+                windows: [UsageWindow(id: "weekly", kind: .weekly, usedPercent: 45)],
+                analyticsDataset: makeAnalyticsDataset(
+                    totalTokens: 1000, inputTokens: 200, cachedInputTokens: 700,
+                    outputTokens: 100, turns: 4, chats: 2
+                ),
+                profileStats: makeLifetimeProfile()
+            ),
+            error: nil, analyticsStale: false, profileStale: false
+        ))
+        XCTAssertEqual(statusItem.button?.title, "55%")
+        XCTAssertTrue(statusItem.menu?.items.contains { $0.view is UsageAnalyticsMenuView } == true)
+        controller.accountDidUpdate()
+        XCTAssertEqual(statusItem.button?.title, MenuBarText.statusTitle(snapshot: nil))
+        XCTAssertFalse(statusItem.menu?.items.contains { $0.view is UsageAnalyticsMenuView } == true)
+    }
+
     func testRefreshPolicyLimitsAutomaticAnalyticsButAllowsManualRefresh() {
         let now = Date(timeIntervalSince1970: 2_000_000_000)
 
@@ -137,6 +163,33 @@ final class MenuBarTextTests: XCTestCase {
         XCTAssertTrue(
             RefreshPolicy.shouldIncludeAnalytics(
                 trigger: .manual,
+                lastAttempt: now,
+                now: now
+            )
+        )
+    }
+
+    func testRefreshPolicyLimitsAutomaticAnalyticsButAllowsAccountRefresh() {
+        let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+        XCTAssertTrue(RefreshPolicy.shouldIncludeAnalytics(trigger: .automatic, lastAttempt: nil, now: now))
+        XCTAssertFalse(
+            RefreshPolicy.shouldIncludeAnalytics(
+                trigger: .automatic,
+                lastAttempt: now.addingTimeInterval(-899),
+                now: now
+            )
+        )
+        XCTAssertTrue(
+            RefreshPolicy.shouldIncludeAnalytics(
+                trigger: .automatic,
+                lastAttempt: now.addingTimeInterval(-900),
+                now: now
+            )
+        )
+        XCTAssertTrue(
+            RefreshPolicy.shouldIncludeAnalytics(
+                trigger: .accountUpdated,
                 lastAttempt: now,
                 now: now
             )
@@ -427,21 +480,17 @@ final class MenuBarTextTests: XCTestCase {
         }
     }
 
-    func testStatusButtonUsesAdaptivePieTemplateAndCompactTitleLayout() {
+    func testStatusButtonShowsOnlyPercentageWithAccessibleLabel() {
         let button = NSButton(frame: .zero)
+        button.image = NSImage(size: NSSize(width: 16, height: 16))
 
         MenuBarButtonStyle.apply(to: button)
 
-        let image = button.image
-        XCTAssertNotNil(image)
-        XCTAssertTrue(button.imageHugsTitle)
-        XCTAssertEqual(button.imagePosition, .imageLeading)
+        XCTAssertNil(button.image)
+        XCTAssertEqual(button.imagePosition, .noImage)
         XCTAssertEqual(button.alignment, .center)
         XCTAssertEqual(button.font?.pointSize, MenuBarButtonStyle.fontSize)
-        XCTAssertEqual(image?.size, NSSize(width: 16, height: 16))
-        XCTAssertTrue(image?.isTemplate ?? false)
-        XCTAssertEqual(image?.accessibilityDescription, "Vibe View usage statistics")
-        XCTAssertNotNil(image?.tiffRepresentation)
+        XCTAssertEqual(button.accessibilityLabel(), "Codex weekly quota remaining")
     }
 
     func testStatusButtonLetsMacOSChooseAdaptiveIconAndPercentageColor() {
@@ -835,9 +884,9 @@ final class MenuBarTextTests: XCTestCase {
             )
         )
 
-        XCTAssertTrue(textValues(in: visible).contains("Credits remaining"))
+        XCTAssertTrue(textValues(in: visible).contains("Usage credits"))
         XCTAssertTrue(textValues(in: visible).contains("-1.25"))
-        XCTAssertFalse(textValues(in: hidden).contains("Credits remaining"))
+        XCTAssertFalse(textValues(in: hidden).contains("Usage credits"))
         XCTAssertGreaterThan(visible.frame.height, hidden.frame.height)
         assertContentFits(visible)
         assertContentFits(hidden)
@@ -1179,7 +1228,7 @@ private actor MenuAccountServiceFake: CodexAccountServing {
         .reset
     }
 
-    func rateLimitUpdates() async throws -> AsyncStream<AppServerRateLimitSnapshot> {
+    func accountUpdates() async throws -> AsyncStream<AppServerAccountUpdate> {
         AsyncStream { $0.finish() }
     }
 

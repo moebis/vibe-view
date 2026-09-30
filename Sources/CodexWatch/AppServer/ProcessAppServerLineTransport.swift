@@ -6,7 +6,6 @@ actor ProcessAppServerLineTransport: AppServerLineTransport {
     private let maximumLineBytes: Int
     private var process: Process?
     private var standardInput: FileHandle?
-    private var standardOutput: FileHandle?
     private var readerTask: Task<Void, Never>?
 
     init(
@@ -52,9 +51,10 @@ actor ProcessAppServerLineTransport: AppServerLineTransport {
 
         let input = inputPipe.fileHandleForWriting
         let output = outputPipe.fileHandleForReading
+        // A write racing child exit must fail with EPIPE, not kill the app via SIGPIPE.
+        _ = fcntl(input.fileDescriptor, F_SETNOSIGPIPE, 1)
         process = child
         standardInput = input
-        standardOutput = output
         readerTask = Task.detached(priority: .utility) { [maximumLineBytes] in
             await Self.readLines(
                 from: output,
@@ -90,8 +90,8 @@ actor ProcessAppServerLineTransport: AppServerLineTransport {
             process?.terminate()
         }
         process = nil
-        try? standardOutput?.close()
-        standardOutput = nil
+        // The reader owns stdout and closes it on exit, so a descriptor number
+        // is never freed (and reused by a reconnect) while a read may be pending.
     }
 
     private nonisolated static func readLines(
@@ -100,7 +100,9 @@ actor ProcessAppServerLineTransport: AppServerLineTransport {
         receiveLine: @escaping @Sendable (Data) async -> Void,
         termination: @escaping @Sendable (Error?) async -> Void
     ) async {
+        defer { try? handle.close() }
         var buffer = Data()
+        var chunk = [UInt8](repeating: 0, count: 64 * 1_024)
         do {
             while !Task.isCancelled {
                 let remainingThroughDetectionByte = maximumLineBytes - buffer.count + 1
@@ -108,11 +110,10 @@ actor ProcessAppServerLineTransport: AppServerLineTransport {
                     await termination(AppServerError.lineTooLarge(maxBytes: maximumLineBytes))
                     return
                 }
-                let readCount = min(64 * 1_024, remainingThroughDetectionByte)
+                let readCount = min(chunk.count, remainingThroughDetectionByte)
                 // FileHandle.read(upToCount:) may wait to fill the buffer on a pipe.
                 // POSIX read returns currently available bytes, so a short JSONL reply
                 // is delivered while the long-lived server keeps stdout open.
-                var chunk = [UInt8](repeating: 0, count: readCount)
                 let count = Darwin.read(handle.fileDescriptor, &chunk, readCount)
                 if count < 0 {
                     if errno == EINTR { continue }

@@ -167,6 +167,7 @@ struct CodexUsageClient: Sendable {
         from endpoint: URL,
         timeoutInterval: TimeInterval = 15
     ) async throws -> Data {
+        try Task.checkCancellation()
         guard SameHostHTTPSRedirectDelegate.allowsRedirect(
             from: self.endpoint,
             to: endpoint

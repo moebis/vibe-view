@@ -24,7 +24,8 @@ This is the current structural authority for Vibe View. Behavioral details belon
 
 ```text
 Codex executable -> experimental app-server JSONL over stdio
-    -> managed ChatGPT authentication, quota, account usage, reset credits
+    -> managed ChatGPT authentication, quota, usage credits, account usage, reset credits
+    -> bounded account/rate-limit notifications and account-data invalidation
     -> one-mebibyte line framing and fail-closed DTO validation
 
 Optional CODEX_HOME/auth.json or ~/.codex/auth.json
@@ -50,7 +51,6 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 | App-server transport | `CodexAppServerClient`, `ProcessAppServerLineTransport` | Managed-auth JSONL RPC over a local Codex child process with bounded line framing |
 | Compatibility transport | `CodexAuthReader`, `CodexUsageClient` | Optional bounded local credential read and bounded authenticated GET requests |
 | Source strategy | `CodexAccountService`, `CodexDataSourceStrategy` | Prefer official quota, retain narrow compatibility fallback, and merge independent capability results |
-| Claude subscription | `ClaudeAuthReader`, `ClaudeUsageClient`, `ClaudeQuotaController`, `ClaudeQuotaMenuView` | Opt-in CLI credential read, bounded Anthropic quota, independent refresh and presentation |
 | Decoding | Usage, analytics, and profile DTOs | Untrusted payload validation and fail-closed conversion |
 | Domain | `UsageSnapshot`, analytics/profile models | Immutable sendable state and pure calculations |
 | Dashboard | Dashboard models/views, `AnalyticsWindowController` | Range projection, Lifetime presentation, reusable native window |
@@ -71,11 +71,7 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 - Quota notifications are off by default and contain no quota percentage or account value. macOS owns notification authorization and delivery persistence. Launch at Login is changed only through the user-selected menu toggle.
 - Reset-credit consumption requires a confirmation, uses the documented idempotency key, retains an uncertain request only in memory for safe retry, and always refetches after an exact server outcome.
 - Copy Diagnostics writes only version, selected source, capability freshness, and settings state to the pasteboard. It excludes credentials, account identifiers, paths, usage values, and error details.
-- The app does not inspect rollout logs, prompts, browser cookies, Keychain browser material, process lists, or the Codex task database. It has no updater, telemetry, WebView, or executable plugin system. Claude is the explicitly authorized additional provider; see decision 012 and CLAUDE-QUOTA-017.
-
-## Claude provider boundary
-
-An explicitly connected Claude Code login supplies a read-only GET to `https://api.anthropic.com/api/oauth/usage`. Read only the default CLI Keychain credential or its bounded regular-file fallback, off the main actor. No credential copying, refresh-token handling, conversation reading, or model call occurs. The shared ephemeral same-host session bounds the body to 64 KiB; parsing ignores identity and billing fields. The menu reports independent subscription windows and resets, with unavailable states on auth/network/schema failure. The Codex status-bar percentage and historical dashboard remain Codex-specific. Claude's controller coalesces requests, obeys Retry-After even for manual refresh, and rejects results after shutdown/disconnect. The CLI owns credential renewal. There is no embedded login or persistent Claude data store.
+- The app does not inspect rollout logs, prompts, browser cookies, Keychain browser material, process lists, or the Codex task database. It has no updater, telemetry, WebView, or executable plugin system. The app does not read Claude credentials or usage data (CLAUDE-QUOTA-017).
 
 ## Concurrency and lifecycle
 
@@ -93,7 +89,7 @@ An explicitly connected Claude Code login supplies a read-only GET to `https://a
 ## Presentation semantics
 
 - The app-server adapter prefers the explicit `codex` map entry and accepts only a base or unidentified legacy bucket. The menu-bar number is always the rounded remaining base-weekly percentage. It never switches to a rolling, Spark, or model-specific limit.
-- The status item uses the template `chart.pie.fill` SF Symbol and native foreground rendering so both icon and percentage adapt to light, dark, and selected materials.
+- The status item shows only the percentage (no icon; it sits beside the official Codex icon) with native foreground rendering for light, dark, and selected materials. A fixed `autosaveName` keeps a user's Command-drag position across relaunches and updates.
 - Retired Spark quota rows are suppressed and their obsolete visibility preference is removed on initialization. Presentation still recognizes legacy and versioned Codex/Spark names; other server-defined buckets and historical analytics remain intact. No Spark-to-Luna quota mapping is inferred.
 - Usage projections use a single-entry in-memory cache per surface keyed by the complete dataset, range, calendar, and reference day. Lifetime models rebuild only when their profile changes. Unchanged dashboard values are not republished, and a closed window defers updates until reopened. Native menu opening rebuilds time-dependent labels through `menuNeedsUpdate(_:)`.
 - Custom menu sections share content-driven sizing and 16-point horizontal margins matching the native action rows and separators. The selected analytics section determines its height. Reset date and pace share a line; exhaustion remains separate. The main native menu hides its state gutter and uses trailing checkmark badges while preserving actions and keyboard handling. Main-menu toggles leave native item state off to avoid macOS forcing a leading checkmark gutter; enabled status is conveyed by the badge and tooltip.

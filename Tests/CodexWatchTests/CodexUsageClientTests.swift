@@ -321,6 +321,14 @@ final class CodexUsageClientTests: XCTestCase {
         XCTAssertEqual(negative.creditsRemaining, .balance("-1.25"))
     }
 
+    func testReportedZeroUsageCreditsRemainVisibleAfterDepletion() throws {
+        let snapshot = try JSONDecoder().decode(
+            UsageResponseDTO.self,
+            from: Data(#"{"credits":{"has_credits":false,"unlimited":false,"balance":"0"}}"#.utf8)
+        ).snapshot(fetchedAt: .now)
+        XCTAssertEqual(snapshot.creditsRemaining, .balance("0"))
+    }
+
     func testUnlimitedCreditsTakePrecedenceOverBalance() throws {
         let snapshot = try JSONDecoder().decode(
             UsageResponseDTO.self,
@@ -449,6 +457,25 @@ final class CodexUsageClientTests: XCTestCase {
         } catch let error as CodexUsageError {
             XCTAssertEqual(error, .reauthenticationRequired)
         }
+    }
+
+    func testCancelledRefreshDoesNotCreateTaskInInvalidatedSession() async {
+        let session = URLSession(configuration: .ephemeral)
+        session.invalidateAndCancel()
+        let client = CodexUsageClient(
+            credentials: CodexCredentials(accessToken: "fixture-access-token", accountID: nil),
+            session: session
+        )
+        let cancelled = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            do {
+                _ = try await client.fetch()
+                XCTFail("A cancelled refresh must not start network work")
+            } catch {
+                XCTAssertTrue(error is CancellationError)
+            }
+        }
+        await cancelled.value
     }
 
     func testPlainHTTPIsRejectedBeforeSendingCredentials() async throws {

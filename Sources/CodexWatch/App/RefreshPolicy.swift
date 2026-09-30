@@ -43,9 +43,10 @@ enum RefreshTrigger: Equatable, Sendable {
     case menuOpened
     case wake
     case rateLimitUpdated
+    case accountUpdated
 
     var replacesActiveWork: Bool {
-        self == .manual
+        self == .manual || self == .accountUpdated
     }
 }
 
@@ -231,7 +232,7 @@ enum RefreshPolicy {
     ) -> Bool {
         if trigger == .menuOpened { return false }
         if trigger == .rateLimitUpdated { return false }
-        if trigger == .manual { return true }
+        if trigger == .manual || trigger == .accountUpdated { return true }
         guard let lastAttempt else { return true }
         return now.timeIntervalSince(lastAttempt) >= analyticsInterval
     }

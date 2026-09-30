@@ -47,19 +47,7 @@ struct UsageAnalyticsPresentation: Equatable {
     }
 
     private static func compact(_ value: Int64) -> String {
-        let units: [(threshold: Double, suffix: String)] = [
-            (1_000_000_000, "B"),
-            (1_000_000, "M"),
-            (1_000, "K")
-        ]
-        let numeric = Double(value)
-        guard let unit = units.first(where: { numeric >= $0.threshold }) else {
-            return String(value)
-        }
-        let scaled = numeric / unit.threshold
-        let text = String(format: scaled >= 100 ? "%.0f" : "%.1f", scaled)
-            .replacingOccurrences(of: ".0", with: "")
-        return text + unit.suffix
+        CompactNumberFormat.string(value)
     }
 
     private static let dateFormatter: DateFormatter = {

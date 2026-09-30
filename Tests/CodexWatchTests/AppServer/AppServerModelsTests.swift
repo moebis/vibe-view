@@ -3,6 +3,26 @@ import XCTest
 @testable import CodexWatch
 
 final class AppServerModelsTests: XCTestCase {
+    func testNonChatGPTAccountShapesRemainRecognizableWithoutCredentialDetails() throws {
+        let shapes = [
+            #"{"type":"amazonBedrock","usesCodexManagedCredentials":true}"#,
+            #"{"type":"amazonBedrock"}"#,
+            #"{"type":"amazonBedrock","credentialSource":"codexManaged"}"#,
+            #"{"type":"amazonBedrock","credentialSource":"awsManaged"}"#
+        ]
+        for shape in shapes {
+            let account = try JSONDecoder().decode(AppServerAccount.self, from: Data(shape.utf8))
+            XCTAssertEqual(account, .amazonBedrock)
+        }
+        let unknown = try JSONDecoder().decode(
+            AppServerAccount.self, from: Data(#"{"type":"futureProvider","privateField":"ignored"}"#.utf8)
+        )
+        XCTAssertEqual(unknown, .unsupported)
+        XCTAssertThrowsError(try JSONDecoder().decode(
+            AppServerAccount.self, from: Data(#"{"type":"chatgpt","planType":false}"#.utf8)
+        ))
+    }
+
     func testEveryCodex01510PlanVariantDecodes() throws {
         let rawValues = [
             "free", "go", "plus", "pro", "prolite", "team",

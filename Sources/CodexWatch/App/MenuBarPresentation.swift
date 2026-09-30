@@ -4,34 +4,24 @@ import Foundation
 @MainActor
 enum MenuBarButtonStyle {
     static let fontSize: CGFloat = 12
-    static let imageSize = NSSize(width: 16, height: 16)
+    /// Stable identity so a Command-drag position survives relaunches and updates.
+    static let autosaveName = "VibeViewWeeklyQuota"
+    static let accessibilityLabel = "Codex weekly quota remaining"
 
+    /// Percentage only: the item sits beside the official Codex icon, which
+    /// already identifies it.
     static func apply(to button: NSButton) {
-        button.image = makeStatusImage()
-        button.imagePosition = .imageLeading
-        button.imageHugsTitle = true
+        button.image = nil
+        button.imagePosition = .noImage
         button.alignment = .center
         button.font = .monospacedDigitSystemFont(ofSize: fontSize, weight: .medium)
-        button.toolTip = "Vibe View weekly quota"
+        button.toolTip = "Vibe View · \(accessibilityLabel)"
+        button.setAccessibilityLabel(accessibilityLabel)
     }
 
     static func applyRefreshState(to button: NSButton, isStale: Bool) {
         button.contentTintColor = nil
         button.alphaValue = isStale ? 0.62 : 1
-    }
-
-    static func makeStatusImage() -> NSImage {
-        let description = "Vibe View usage statistics"
-        let symbol = NSImage(
-            systemSymbolName: "chart.pie.fill",
-            accessibilityDescription: description
-        )
-        let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-        let image = symbol?.withSymbolConfiguration(configuration) ?? symbol ?? NSImage(size: imageSize)
-        image.size = imageSize
-        image.isTemplate = true
-        image.accessibilityDescription = description
-        return image
     }
 }
 
@@ -310,7 +300,7 @@ final class QuotaProgressMenuView: MenuContentView {
 
         add(Self.labelRow(title: "Codex plan", value: presentation.planValue), to: stack)
         if let creditsRemainingValue = presentation.creditsRemainingValue {
-            add(Self.labelRow(title: "Credits remaining", value: creditsRemainingValue), to: stack)
+            add(Self.labelRow(title: "Usage credits", value: creditsRemainingValue), to: stack)
         }
         if let statusDetail = presentation.statusDetail {
             add(Self.detailLabel(statusDetail), to: stack)

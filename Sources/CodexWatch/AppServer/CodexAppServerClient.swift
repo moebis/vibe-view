@@ -57,7 +57,8 @@ actor CodexAppServerClient {
     private var nextRequestID = 1
     private var pending: [Int: CheckedContinuation<Data, Error>] = [:]
     private var startupWaiters: [CheckedContinuation<Void, Error>] = []
-    private var updateStreams: [UUID: AsyncStream<AppServerRateLimitSnapshot>.Continuation] = [:]
+    private var accountRevision: UInt64 = 0
+    private var updateStreams: [UUID: AsyncStream<AppServerAccountUpdate>.Continuation] = [:]
     private var requestTimeoutTasks: [Int: Task<Void, Never>] = [:]
 
     init(
@@ -146,10 +147,20 @@ actor CodexAppServerClient {
         return response.outcome
     }
 
-    func rateLimitUpdates() -> AsyncStream<AppServerRateLimitSnapshot> {
+    func accountUpdates() -> AsyncStream<AppServerAccountUpdate> {
         let id = UUID()
         return AsyncStream(bufferingPolicy: .bufferingNewest(10)) { continuation in
+            // terminate() has already finished known streams; do not strand a new one.
+            guard state != .terminated else {
+                continuation.finish()
+                return
+            }
             updateStreams[id] = continuation
+            if accountRevision != 0 {
+                continuation.yield(AppServerAccountUpdate(
+                    accountRevision: accountRevision, rateLimits: nil
+                ))
+            }
             continuation.onTermination = { [weak self] _ in
                 Task {
                     await self?.removeUpdateStream(id: id)
@@ -297,7 +308,7 @@ actor CodexAppServerClient {
     }
 
     private func receiveNotification(method: String, object: [String: Any]) async {
-        guard method == "account/rateLimits/updated" else {
+        guard method == "account/rateLimits/updated" || method == "account/updated" else {
             return
         }
         do {
@@ -305,12 +316,21 @@ actor CodexAppServerClient {
                 throw AppServerError.malformedMessage
             }
             let data = try JSONSerialization.data(withJSONObject: params)
-            let notification = try decoder.decode(
-                AppServerRateLimitsUpdatedNotification.self,
-                from: data
+            let rateLimits: AppServerRateLimitSnapshot?
+            if method == "account/updated" {
+                _ = try decoder.decode(AppServerAccountUpdatedNotification.self, from: data)
+                accountRevision &+= 1
+                rateLimits = nil
+            } else {
+                rateLimits = try decoder.decode(
+                    AppServerRateLimitsUpdatedNotification.self, from: data
+                ).rateLimits
+            }
+            let update = AppServerAccountUpdate(
+                accountRevision: accountRevision, rateLimits: rateLimits
             )
             for continuation in updateStreams.values {
-                continuation.yield(notification.rateLimits)
+                continuation.yield(update)
             }
         } catch {
             await terminate(with: .malformedMessage, stopTransport: true)

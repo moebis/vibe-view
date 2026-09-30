@@ -225,13 +225,7 @@ struct UsageResponseDTO: Decodable {
     }
 
     private static func boundedText(_ value: String, maximumUTF8Bytes: Int = 128) -> String {
-        var result = ""
-        for character in value.trimmingCharacters(in: .whitespacesAndNewlines) {
-            let candidate = result + String(character)
-            guard candidate.utf8.count <= maximumUTF8Bytes else { break }
-            result = candidate
-        }
-        return result
+        BoundedText.trimmed(value, maximumUTF8Bytes: maximumUTF8Bytes)
     }
 }
 
@@ -288,12 +282,13 @@ struct CreditsDTO: Decodable {
 
     var validatedRemaining: CreditsRemaining? {
         if unlimited == true { return .unlimited }
-        guard hasCredits == true, let balance else { return nil }
+        guard let hasCredits, let balance else { return nil }
         let trimmed = balance.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               trimmed.count <= 64,
               let value = ValidatedDecimal.parse(trimmed),
-              !value.isNaN else { return nil }
+              !value.isNaN,
+              hasCredits || value <= 0 else { return nil }
         return .balance(trimmed)
     }
 }
@@ -341,14 +336,7 @@ struct ResetCreditDetailsDTO: Decodable {
         _ value: String?,
         maximumUTF8Bytes: Int
     ) -> String? {
-        guard let value else { return nil }
-        var result = ""
-        for character in value.trimmingCharacters(in: .whitespacesAndNewlines) {
-            let candidate = result + String(character)
-            guard candidate.utf8.count <= maximumUTF8Bytes else { break }
-            result = candidate
-        }
-        return result.isEmpty ? nil : result
+        BoundedText.trimmedNonEmpty(value, maximumUTF8Bytes: maximumUTF8Bytes)
     }
 }
 
@@ -527,16 +515,10 @@ struct WindowDTO: Decodable {
                 resetAt = nil
             }
         } else if let text = try? container.decode(String.self, forKey: .resetAt) {
-            resetAt = Self.parseISO8601Date(text)
+            resetAt = ISO8601Parsing.date(from: text)
         } else {
             resetAt = nil
         }
-    }
-
-    private static func parseISO8601Date(_ text: String) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text)
     }
 }
 
@@ -545,8 +527,6 @@ private extension KeyedDecodingContainer {
         guard let text = try? decodeIfPresent(String.self, forKey: key) else {
             return nil
         }
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: text) ?? ISO8601DateFormatter().date(from: text)
+        return ISO8601Parsing.date(from: text)
     }
 }

@@ -1,12 +1,10 @@
 # Vibe View
 
-Vibe View is a native macOS menu bar app for Codex and Claude subscription quotas, with Codex token usage and activity analytics. Version 1.3.3 prefers Codex's managed-auth app-server account APIs, preserves a bounded compatibility path for richer analytics, and adds explicit quota alerts and account controls while keeping the menu-bar percentage focused on the base weekly quota.
+Vibe View is a native macOS menu bar app for Codex subscription quotas, with token usage and activity analytics. Version 1.3.7 prefers Codex's managed-auth app-server account APIs, preserves a bounded compatibility path for richer analytics, and adds explicit quota alerts and account controls while keeping the menu-bar percentage focused on the base weekly quota.
 
 The app was formerly Codex Watch. The macOS bundle identifier (`com.moebis.codexwatch`), executable, and preference keys remain stable so upgrades retain your settings. The GitHub repository is now [`moebis/vibe-view`](https://github.com/moebis/vibe-view).
 
-Claude subscription quota is available through **Connect Claude…**. Sign in with the official [Claude Code CLI](https://code.claude.com/docs/en/cli-reference) using `claude auth login`, then connect in Vibe View and allow Keychain access if macOS asks. The five-hour and weekly limits are [shared with Claude desktop and Claude Code](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work). Claude appears in its own menu section; the menu-bar percentage and analytics dashboard remain Codex-specific.
-
-Vibe View reads the CLI's default Keychain item (or its bounded fallback file) and calls Anthropic's internal read-only usage endpoint. It does not start model sessions, scan conversation history, copy credentials, or handle API billing. **Disconnect Claude** disables Vibe View's reads without logging out the CLI. Expired/revoked sign-ins require `claude auth login` again. Custom `CLAUDE_CONFIG_DIR` setups are not currently supported. The compatibility endpoint may change; missing data shows unavailable, never an invented allowance.
+Claude quota monitoring was removed in 1.3.5; the Claude desktop menu bar app shows the plan's five-hour and weekly limits itself.
 
 ## What it shows
 
@@ -50,7 +48,9 @@ Quota publishes as soon as it completes, without waiting for slower analytics. F
 
 Unchanged Usage projections and Lifetime presentation models are reused in memory. Quota-only refreshes do not republish unchanged dashboard data, and closed dashboards wait until reopened to update. Menu countdowns are rebuilt when the menu opens, without requiring a network fetch.
 
-Codex app-server rate-limit updates request a coalesced quota-only refresh. The dashboard Refresh control invokes the same manual generation as the menu. Its heatmap uses weekday rows and week columns, and wide data tables scroll rather than clipping when the window is narrow.
+Codex app-server rate-limit updates request a coalesced quota-only refresh. Account-change notifications clear the previous quota, Usage projections, and Lifetime data and replace active work with a full refresh. Shutdown prevents new requests and drains active refreshes before closing the network session. The dashboard Refresh control invokes the same manual generation as the menu. Its heatmap uses weekday rows and week columns, and wide data tables scroll rather than clipping when the window is narrow.
+
+Usage credits appear as a separate row from earned reset credits. The app preserves the server-reported balance, including an explicit zero after depletion, or displays `Unlimited` when reported. It never converts credits to dollars or estimates remaining messages.
 
 ## CSV export
 
@@ -70,6 +70,8 @@ GET https://chatgpt.com/backend-api/wham/rate-limit-reset-credits
 GET https://chatgpt.com/backend-api/wham/analytics/daily-workspace-usage-counts
 GET https://chatgpt.com/backend-api/wham/profiles/me
 ```
+
+These compatibility endpoints are internal ChatGPT routes, not a public API contract; they may change independently of the documented [Codex app-server account methods](https://learn.chatgpt.com/docs/app-server#authentication-endpoints). The current protocol covers quota buckets, usage credits, reset credits, and lifetime summaries, but does not supply the richer model/client analytics used here.
 
 The Usage analytics request covers the inclusive trailing 365 calendar days. Smaller views are projected locally from that one bounded response. The profile request supplies exact Lifetime headline totals and its own daily activity buckets; those values are never reconstructed from incomplete historical rows. Each response is capped at one mebibyte. The production network session is ephemeral, uncached, cookieless, and rejects redirects to another host.
 

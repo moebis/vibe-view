@@ -9,7 +9,7 @@ protocol AppServerAccountServing: Sendable {
         idempotencyKey: String,
         creditID: String?
     ) async throws -> AppServerResetOutcome
-    func rateLimitUpdates() async -> AsyncStream<AppServerRateLimitSnapshot>
+    func accountUpdates() async -> AsyncStream<AppServerAccountUpdate>
     func stop() async
 }
 
@@ -27,7 +27,7 @@ protocol CodexAccountServing: Sendable {
         idempotencyKey: String,
         creditID: String?
     ) async throws -> AppServerResetOutcome
-    func rateLimitUpdates() async throws -> AsyncStream<AppServerRateLimitSnapshot>
+    func accountUpdates() async throws -> AsyncStream<AppServerAccountUpdate>
     func stop() async
 }
 
@@ -101,8 +101,8 @@ actor CodexAccountService: CodexAccountServing {
         }
     }
 
-    func rateLimitUpdates() async throws -> AsyncStream<AppServerRateLimitSnapshot> {
-        try await withAccount { client in await client.rateLimitUpdates() }
+    func accountUpdates() async throws -> AsyncStream<AppServerAccountUpdate> {
+        try await withAccount { client in await client.accountUpdates() }
     }
 
     func stop() async {

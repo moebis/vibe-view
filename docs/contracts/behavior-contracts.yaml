@@ -25,7 +25,7 @@ contracts:
   - id: PRIVACY-BOUNDARY-003
     title: Credentials and private provider data remain minimally exposed
     status: active
-    statement: The app prefers managed ChatGPT authentication through a local Codex app-server child process and optionally reads only the local auth file through an off-main, opened-handle read that enforces a one-mebibyte ceiling while consuming bytes. App-server JSONL lines and compatibility HTTPS responses each have a one-mebibyte ceiling. Codex compatibility credentials go only to the original ChatGPT HTTPS host. Opted-in Claude quota reads use the default Claude Code Keychain item or its bounded fallback credential file, send its access token only to api.anthropic.com, and never copy or refresh stored credentials. CLAUDE-QUOTA-017 governs this separate provider. Credentials and authenticated responses remain in process memory; child stderr is discarded. The app never contacts an update service, scans sessions, reads prompts, logs sensitive data, caches responses, or stores cookies. Analytics leaves process memory only for a user-confirmed CSV. Notification text contains no quota value, and copied diagnostics contain operational state only.
+    statement: The app prefers managed ChatGPT authentication through a local Codex app-server child process and optionally reads only the local auth file through an off-main, opened-handle read that enforces a one-mebibyte ceiling while consuming bytes. App-server JSONL lines and compatibility HTTPS responses each have a one-mebibyte ceiling. Codex compatibility credentials go only to the original ChatGPT HTTPS host. Credentials and authenticated responses remain in process memory; child stderr is discarded. The app never contacts an update service, scans sessions, reads prompts, logs sensitive data, caches responses, or stores cookies. Analytics leaves process memory only for a user-confirmed CSV. Notification text contains no quota value, and copied diagnostics contain operational state only.
     rationale: The app handles an access token and must minimize both data access and exfiltration paths.
     source: security-review
     owner: project-maintainer
@@ -140,10 +140,10 @@ contracts:
     last_verified_commit: 018225f
 
   - id: CREDITS-BALANCE-009
-    title: The status menu shows the server-reported ChatGPT credits remaining
+    title: The status menu shows server-reported ChatGPT usage credits
     status: active
-    statement: When credits.has_credits is true and the existing usage response contains a numeric credits.balance value, the expanded status menu displays it in one Credits remaining row. Positive, zero, and negative server-reported balances are preserved. When credits.unlimited is true, the row displays Unlimited instead of a numeric balance. Numeric text must validate in full, not just as a numeric prefix. A missing entitlement, missing or malformed balance, or oversized value hides the row and is never replaced with an assumed zero. No message estimates or other credits metadata are displayed.
-    rationale: The server can report a negative balance after concurrent usage depletes credits, while has_credits and unlimited determine whether a numeric balance has the intended meaning.
+    statement: When credits.has_credits is true and the existing usage response contains a numeric credits.balance value, the expanded status menu displays it in one Usage credits row, separate from earned reset credits. An explicit zero or negative balance remains visible when has_credits is false after depletion. Positive, zero, and negative server-reported balances are preserved. When credits.unlimited is true, the row displays Unlimited instead of a numeric balance. Numeric text must validate in full, not just as a numeric prefix. A missing entitlement, a positive balance with has_credits false, a missing or malformed balance, or an oversized value hides the row and is never replaced with an assumed zero. No message estimates or other credits metadata are displayed.
+    rationale: The server can report a negative balance after concurrent usage depletes credits, while has_credits and unlimited determine whether a numeric balance has the intended meaning; losing credit availability must not hide an explicitly reported depleted balance.
     source: user-confirmed-and-official-docs
     owner: project-maintainer
     risk: medium
@@ -151,13 +151,13 @@ contracts:
       include: [usage-parsing, status-menu, credits-balance]
       exclude: [message-estimates, overage-state, spend-controls, additional-rate-limits]
     examples:
-      positive: A credits.balance of -1.25 with has_credits true displays Credits remaining and -1.25, while unlimited true displays Unlimited.
+      positive: A credits.balance of -1.25 with has_credits true displays Usage credits and -1.25, while unlimited true displays Unlimited.
       negative: A missing entitlement displays zero, or approximate message counts are added to the menu.
     guards:
       - Tests/CodexWatchTests/AuditRegressionTests.swift
       - Tests/CodexWatchTests/CodexUsageClientTests.swift
       - Tests/CodexWatchTests/MenuBarTextTests.swift
-      - "manual: compare the Credits remaining row with the ChatGPT Usage Dashboard on a real Mac"
+      - "manual: compare the Usage credits row with the ChatGPT Usage Dashboard on a real Mac"
     supersedes: []
     superseded_by: null
     last_verified_commit: 018225f
@@ -213,7 +213,7 @@ contracts:
   - id: REFRESH-COORDINATION-013
     title: Refresh work is coordinated, bounded, and user-selectable
     status: active
-    statement: A single coordinator owns automatic, manual, menu-open, wake, and app-server rate-limit update triggers. Repeated nonmanual triggers coalesce into active work; manual refresh replaces older work and only the newest generation may publish either partial quota or final analytics; quota publishes without waiting for analytics; authentication failure marks retained analytics stale even on quota-only refreshes; scheduled delays start after completion; shutdown prevents publication. Fixed choices are Manual, 1, 2, 5, 15, and 30 minutes. Adaptive is the fresh-install default, ranges from 2 to 30 minutes based only on menu interaction, and uses 30 minutes during Low Power Mode or serious thermal pressure. Menu opening and rate-limit notifications are quota-only, while automatic analytics attempts remain at least 15 minutes apart.
+    statement: A single coordinator owns automatic, manual, menu-open, wake, and app-server rate-limit and account update triggers. Repeated routine triggers coalesce into active work; manual and account-change refreshes replace older work and only the newest generation may publish either partial quota or final analytics; quota publishes without waiting for analytics; authentication failure marks retained analytics stale even on quota-only refreshes; scheduled delays start after completion; shutdown prevents publication and new fetches, and drains in-flight refreshes before invalidating the HTTPS session. Fixed choices are Manual, 1, 2, 5, 15, and 30 minutes. Adaptive is the fresh-install default, ranges from 2 to 30 minutes based only on menu interaction, and uses 30 minutes during Low Power Mode or serious thermal pressure. Account-change notifications discard previous account data and force all capabilities to refresh. Menu opening and rate-limit notifications are quota-only, while automatic analytics attempts remain at least 15 minutes apart.
     rationale: Generation ownership prevents cancellation churn and stale publication while explicit and adaptive choices control freshness without scanning processes, sessions, or user content.
     source: user-confirmed
     owner: project-maintainer
@@ -252,7 +252,7 @@ contracts:
       - Tests/CodexWatchTests/CodexUsageClientTests.swift
       - Tests/CodexWatchTests/LifetimeDashboardModelTests.swift
       - Tests/CodexWatchTests/MenuBarTextTests.swift
-      - "manual: compare menu and dashboard Lifetime values with the official Codex profile and inspect the pie icon and percentage in light, dark, and selected states"
+      - "manual: compare menu and dashboard Lifetime values with the official Codex profile and inspect the icon-free percentage in light, dark, and selected states"
     supersedes: []
     superseded_by: null
     last_verified_commit: a628a8c
@@ -260,7 +260,7 @@ contracts:
   - id: DATA-SOURCE-015
     title: Official account APIs are preferred without losing bounded compatibility
     status: active
-    statement: Vibe View locates only an explicit or standard installed Codex executable, launches its experimental app-server command without a shell, completes the documented initialize handshake with experimentalApi disabled over one-mebibyte JSONL lines, times out unanswered requests after 20 seconds, and accepts only documented account response shapes while mapping unknown optional variants to unavailable. Failed connections are cleaned up and replaced after a 30-second retry floor with bounded notification resubscription, shared startup, and account revalidation before operations. Unsupported optional methods preserve a healthy quota connection. Official app-server quota is preferred. Additional bucket windows retain distinct bounded identifiers even when server labels are long or normalize identically; no retired bucket is renamed to a current model. The bounded same-host HTTPS quota path is attempted only when app-server quota is unavailable. Rich compatibility profile data is preferred when available, with official account usage as a reduced lifetime fallback; the trailing 365-day Usage dataset remains compatibility-only. App-server account identity must be ChatGPT, and private thread usage, account email, invocation details from account usage, stderr, and raw responses are ignored. Each capability fails independently and missing sources remain unavailable rather than inferred.
+    statement: Vibe View locates only an explicit or standard installed Codex executable, launches its experimental app-server command without a shell, completes the documented initialize handshake with experimentalApi disabled over one-mebibyte JSONL lines, times out unanswered requests after 20 seconds, and recognizes current and legacy non-ChatGPT account shapes without retaining credential-source details, rejects malformed ChatGPT responses, and maps future provider types to an unsupported sign-in state. Unknown optional variants remain unavailable. Failed connections are cleaned up and replaced after a 30-second retry floor with bounded notification resubscription with account revisions surviving buffer overflow, shared startup, and account revalidation before operations. Unsupported optional methods preserve a healthy quota connection. Official app-server quota is preferred. Additional bucket windows retain distinct bounded identifiers even when server labels are long or normalize identically; no retired bucket is renamed to a current model. The bounded same-host HTTPS quota path is attempted only when app-server quota is unavailable. Rich compatibility profile data is preferred when available, with official account usage as a reduced lifetime fallback; the trailing 365-day Usage dataset remains compatibility-only. App-server account identity must be ChatGPT, and private thread usage, account email, invocation details from account usage, stderr, and raw responses are ignored. Each capability fails independently and missing sources remain unavailable rather than inferred.
     rationale: Managed Codex authentication supports file, keyring, and automatic credential stores, while a narrow fallback protects the app from an explicitly experimental command and preserves richer bounded analytics.
     source: user-confirmed-and-official-docs
     owner: project-maintainer
@@ -307,25 +307,22 @@ contracts:
     last_verified_commit: a628a8c
 
   - id: CLAUDE-QUOTA-017
-    title: Claude subscription quotas use explicit CLI connection and separate state
+    title: Vibe View does not monitor Claude quota
     status: active
-    statement: Connecting Claude enables read-only subscription utilization from the internal api.anthropic.com/api/oauth/usage endpoint using Claude Code's default Keychain credential or its one-mebibyte bounded regular-file fallback. Only an explicit Connect action may show Keychain authorization UI. User-requested installation may enable silent reads after verified CLI sign-in. Reject expired credentials, API keys, missing profile scope, custom CLAUDE_CONFIG_DIR, malformed percentages, and responses exceeding 64 kibibytes. Five-hour, weekly, and available model windows belong to the Claude plan shared with desktop; do not infer token allowances or historical analytics. Refreshes coalesce independently, respect a 60-second automatic floor and bounded Retry-After, cancel on disconnect or shutdown, reject late publication, and clear unavailable values on failure. Disconnect disables Vibe View's access without logging out Claude Code. Codex status-bar percentage, reset credits, notifications, and analytics retain their original meaning.
-    rationale: Claude desktop and Code share a subscription, while API billing and context utilization are different measures. Reusing an explicitly authorized CLI credential avoids browser-cookie extraction, embedded-login fragility, and extra model calls.
-    source: user-confirmed-and-first-party-client
+    statement: Vibe View is a Codex-only monitor. It does not read Claude Code or Claude desktop credentials, Keychain items, local usage files, or Anthropic endpoints, and offers no Claude menu section or actions. Launch removes the retired vibeView.claudeQuotaEnabled preference. Re-adding a Claude provider requires an explicit user request and a new contract.
+    rationale: The user retired the Claude provider on 2026-09-24 because the Claude desktop menu bar app already shows the plan's five-hour and weekly limits, with account switching and resets, while Vibe View's CLI-credential path went stale whenever the separate CLI login was not renewed.
+    source: user-request
     owner: project-maintainer
-    risk: critical
+    risk: medium
     scope:
-      include: [claude-quota, claude-cli-authentication, status-menu, refresh-lifecycle]
-      exclude: [claude-conversations, browser-credentials, model-invocations, credential-refresh, api-billing, claude-history]
+      include: [status-menu, preferences, privacy-boundary]
+      exclude: [claude-quota, claude-credentials, claude-desktop-data]
     examples:
-      positive: A signed-in user sees independent Claude five-hour and weekly percentages while the menu-bar icon continues to show Codex weekly remaining.
-      negative: An API key supplies subscription quota, a failed response becomes zero usage, or disconnect logs the CLI out.
+      positive: The menu shows only Codex quota and actions, and a stale Claude preference from 1.3.3 or 1.3.4 is removed at launch.
+      negative: Vibe View reads the Claude Code Keychain item or Claude desktop's plan-usage history.
     guards:
-      - Tests/CodexWatchTests/ClaudeAuthReaderTests.swift
-      - Tests/CodexWatchTests/ClaudeUsageClientTests.swift
-      - Tests/CodexWatchTests/ClaudeUsageSnapshotTests.swift
-      - Tests/CodexWatchTests/ClaudeQuotaControllerTests.swift
-      - "manual: verify native menu, explicit Keychain authorization, and live authenticated quota without logging values"
+      - Tests/CodexWatchTests/MenuBarTextTests.swift
+      - "manual: sensitive string review finds no Claude credential, Keychain, or endpoint access"
     supersedes: []
     superseded_by: null
-    last_verified_commit: e265de2
+    last_verified_commit: daef035

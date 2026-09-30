@@ -21,6 +21,18 @@ final class LifetimeDashboardModelTests: XCTestCase {
         XCTAssertEqual(model.longestStreak, "82 days")
     }
 
+    func testCompactNumbersPromoteRoundedValuesToTheNextUnit() {
+        XCTAssertEqual(CompactNumberFormat.string(999), "999")
+        XCTAssertEqual(CompactNumberFormat.string(1_000), "1K")
+        XCTAssertEqual(CompactNumberFormat.string(8_449), "8.4K")
+        XCTAssertEqual(CompactNumberFormat.string(999_950), "1M")
+        XCTAssertEqual(CompactNumberFormat.string(999_950_000), "1B")
+        XCTAssertEqual(CompactNumberFormat.string(-2_500_000), "-2.5M")
+        XCTAssertEqual(CompactNumberFormat.string(1_500_000_000_000), "1500B")
+        XCTAssertEqual(BoundedText.trimmed("  é🙂ab  ", maximumUTF8Bytes: 6), "é🙂")
+        XCTAssertNil(BoundedText.trimmedNonEmpty("   "))
+    }
+
     func testMissingHeadlineMetricsRemainUnavailable() {
         let model = LifetimeDashboardModel(
             profile: makeProfile(

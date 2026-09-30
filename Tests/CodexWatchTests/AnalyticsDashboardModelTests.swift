@@ -36,6 +36,32 @@ final class AnalyticsDashboardModelTests: XCTestCase {
         XCTAssertEqual(model.projection?.range, .days7)
     }
 
+    func testAccountInvalidationClearsBothSurfacesCachesAndExportWithoutChangingPreferences() {
+        let suiteName = "AnalyticsDashboardModelTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let model = AnalyticsDashboardModel(defaults: defaults, calendar: utcCalendar())
+        let now = day("2026-08-20")
+        model.range = .days7
+        model.section = .lifetime
+        model.update(
+            dataset: makeDashboardDataset(total: 100), error: nil,
+            profileStats: makeProfile(total: 200, fetchedAt: now), now: now
+        )
+        XCTAssertNotNil(model.projection)
+        XCTAssertNotNil(model.lifetime)
+        model.discardAccountData()
+        model.update(dataset: nil, error: .analyticsUnavailable, profileError: .profileUnavailable, now: now)
+        model.range = .days30
+        XCTAssertNil(model.projection)
+        XCTAssertNil(model.lifetime)
+        XCTAssertEqual(model.section, .lifetime)
+        XCTAssertEqual(defaults.integer(forKey: AnalyticsDashboardModel.rangePreferenceKey), 30)
+        XCTAssertThrowsError(try model.csvString()) {
+            XCTAssertEqual($0 as? AnalyticsDashboardModel.ModelError, .dataUnavailable)
+        }
+    }
+
     func testDashboardKeepsLastDatasetAndMarksAnalyticsStale() {
         let suiteName = "AnalyticsDashboardModelTests-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

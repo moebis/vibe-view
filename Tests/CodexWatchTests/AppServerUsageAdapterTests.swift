@@ -3,6 +3,16 @@ import XCTest
 @testable import CodexWatch
 
 final class AppServerUsageAdapterTests: XCTestCase {
+    func testReportedZeroUsageCreditsRemainVisibleAfterDepletion() throws {
+        let response = try JSONDecoder().decode(
+            AppServerRateLimitsResponse.self,
+            from: Data(#"{"rateLimits":{"limitId":"codex","credits":{"hasCredits":false,"unlimited":false,"balance":"0"}}}"#.utf8)
+        )
+        let snapshot = AppServerUsageAdapter.snapshot(from: response, fetchedAt: .now)
+        XCTAssertEqual(snapshot.creditsRemaining, .balance("0"))
+        XCTAssertNil(snapshot.availableResetCredits)
+    }
+
     func testRateLimitsMapToExistingQuotaSemanticsAndOfficialAccountDetails() {
         let fetchedAt = Date(timeIntervalSince1970: 2_000_000_000)
         let base = AppServerRateLimitSnapshot(

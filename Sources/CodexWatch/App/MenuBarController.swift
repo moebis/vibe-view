@@ -8,7 +8,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private let accountService: (any CodexAccountServing)?
     private let session: URLSession
     private let defaults: UserDefaults
-    private let claude: ClaudeQuotaController
     private let notificationController: QuotaNotificationController
     private let launchAtLoginSetting: LaunchAtLoginSetting
     private let persistRefreshFrequency: (RefreshFrequency) -> Void
@@ -22,9 +21,11 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     private(set) var profileStale = false
     private var menuAnalyticsSection: MenuAnalyticsSection
     private var analyticsWindowController: AnalyticsWindowController?
-    private var rateLimitUpdatesTask: Task<Void, Never>?
+    private var accountUpdatesTask: Task<Void, Never>?
     private var resetRedemptionState = ResetCreditRedemptionState()
     private var isResetInFlight = false
+    private var stopped = false
+    private var inFlightFetches = 0
 
     init(
         statusItem: NSStatusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength),
@@ -42,15 +43,9 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         self.accountService = accountService
         self.session = session
         self.defaults = defaults
-        let claudeClient = ClaudeUsageClient(session: session)
-        self.claude = ClaudeQuotaController(defaults: defaults) { allowInteraction in
-            let credentials = try await Task.detached(priority: .utility) {
-                try ClaudeAuthReader().read(allowInteraction: allowInteraction)
-            }.value
-            try Task.checkCancellation()
-            return try await claudeClient.fetch(credentials: credentials)
-        }
+        // Retired preferences: Spark quota rows and the removed Claude provider.
         defaults.removeObject(forKey: "showCodexSparkStats")
+        defaults.removeObject(forKey: "vibeView.claudeQuotaEnabled")
         self.notificationController = notificationController ?? QuotaNotificationController(
             delivery: UnavailableQuotaNotificationDelivery()
         )
@@ -60,7 +55,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         menuAnalyticsSection = MenuAnalyticsSection.load(from: defaults)
         self.persistRefreshFrequency = persistRefreshFrequency
         super.init()
-        claude.onChange = { [weak self] in self?.rebuildMenu() }
         coordinator = RefreshCoordinator(
             frequency: refreshFrequency,
             fetch: { [weak self] request in
@@ -84,19 +78,20 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         configureStatusButton()
         rebuildMenu()
         restoreNotificationPreference()
-        observeRateLimitUpdates()
+        observeAccountUpdates()
         coordinator.trigger(.manual)
     }
 
     func stop() {
+        guard !stopped else { return }
+        stopped = true
         coordinator.stop()
-        claude.stop()
-        rateLimitUpdatesTask?.cancel()
-        rateLimitUpdatesTask = nil
+        accountUpdatesTask?.cancel()
+        accountUpdatesTask = nil
         if let accountService {
             Task { await accountService.stop() }
         }
-        session.invalidateAndCancel()
+        if inFlightFetches == 0 { session.invalidateAndCancel() }
         NSStatusBar.system.removeStatusItem(statusItem)
     }
 
@@ -113,6 +108,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func configureStatusButton() {
+        statusItem.autosaveName = MenuBarButtonStyle.autosaveName
         guard let button = statusItem.button else { return }
         MenuBarButtonStyle.apply(to: button)
         button.title = MenuBarText.statusTitle(snapshot: nil)
@@ -131,11 +127,20 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func fetch(request: RefreshRequest) async -> RefreshResult {
-        claude.refresh(force: request.trigger == .manual)
+        let cancelledResult = RefreshResult(
+            snapshot: nil, error: nil, analyticsStale: analyticsStale, profileStale: profileStale
+        )
+        guard !stopped, !Task.isCancelled else { return cancelledResult }
+        inFlightFetches += 1
+        defer {
+            inFlightFetches -= 1
+            if stopped, inFlightFetches == 0 { session.invalidateAndCancel() }
+        }
         let authReader = authReader
         let credentials = try? await Task.detached(priority: .utility) {
             try authReader.read()
         }.value
+        guard !Task.isCancelled else { return cancelledResult }
         let legacy = credentials.map {
             CodexUsageClient(credentials: $0, session: session)
         }
@@ -209,7 +214,8 @@ final class MenuBarController: NSObject, NSMenuDelegate {
     }
 
     private func rebuildMenu(_ existingMenu: NSMenu? = nil) {
-        let menu = existingMenu ?? NSMenu()
+        // Rebuild in place so a refresh finishing while the menu is open updates it.
+        let menu = existingMenu ?? statusItem.menu ?? NSMenu()
         menu.removeAllItems()
         menu.delegate = self
         menu.showsStateColumn = false
@@ -222,14 +228,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             )
         )
         menu.addItem(progressItem)
-        if claude.isEnabled {
-            menu.addItem(.separator())
-            let claudeItem = NSMenuItem()
-            claudeItem.view = ClaudeQuotaMenuView(
-                snapshot: claude.snapshot, error: claude.error, isRefreshing: claude.isRefreshing
-            )
-            menu.addItem(claudeItem)
-        }
 
         let usagePresentation = snapshot?.analyticsDataset.flatMap { dataset in
             usageProjectionCache.projection(
@@ -294,11 +292,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
             resetItem.isEnabled = !isResetInFlight
             menu.addItem(resetItem)
         }
-        menu.addItem(actionItem(title: "Connect Claude…", action: #selector(connectClaude), keyEquivalent: ""))
-        if claude.isEnabled {
-            menu.addItem(actionItem(title: "Disconnect Claude", action: #selector(disconnectClaude), keyEquivalent: ""))
-            menu.addItem(actionItem(title: "Open Claude Usage…", action: #selector(openClaudeUsage), keyEquivalent: ""))
-        }
         menu.addItem(actionItem(title: "Open ChatGPT", action: #selector(openChatGPT), keyEquivalent: "o"))
         menu.addItem(
             actionItem(
@@ -328,29 +321,6 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         if statusItem.menu !== menu {
             statusItem.menu = menu
         }
-    }
-
-    @objc private func connectClaude() {
-        let alert = NSAlert()
-        alert.messageText = "Connect your Claude plan"
-        alert.informativeText = "Vibe View reads Claude Code’s existing sign-in to show the subscription quota shared with Claude desktop. macOS may ask you to allow Keychain access. No conversations are started.\n\nIf needed, run claude auth login in Terminal first. Disconnecting Vibe View leaves Claude Code signed in."
-        alert.addButton(withTitle: "Connect")
-        alert.addButton(withTitle: "Cancel")
-        alert.addButton(withTitle: "Copy Sign-in Command")
-        NSApp.activate(ignoringOtherApps: true)
-        switch alert.runModal() {
-        case .alertFirstButtonReturn: claude.connect()
-        case .alertThirdButtonReturn:
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString("claude auth login", forType: .string)
-        default: break
-        }
-    }
-
-    @objc private func disconnectClaude() { claude.disconnect() }
-
-    @objc private func openClaudeUsage() {
-        NSWorkspace.shared.open(URL(string: "https://claude.ai/settings/usage")!)
     }
 
     private func refreshFrequencyItem() -> NSMenuItem {
@@ -444,21 +414,42 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         }
     }
 
-    private func observeRateLimitUpdates() {
+    private func observeAccountUpdates() {
         guard let accountService else { return }
-        rateLimitUpdatesTask = Task { [weak self] in
+        accountUpdatesTask = Task { [weak self] in
             while !Task.isCancelled {
-                if let stream = try? await accountService.rateLimitUpdates() {
+                if let stream = try? await accountService.accountUpdates() {
                     guard !Task.isCancelled else { return }
                     self?.coordinator.trigger(.rateLimitUpdated)
-                    for await _ in stream {
+                    var accountRevision: UInt64 = 0
+                    for await update in stream {
                         guard !Task.isCancelled else { return }
-                        self?.coordinator.trigger(.rateLimitUpdated)
+                        if update.accountRevision != accountRevision {
+                            accountRevision = update.accountRevision
+                            self?.accountDidUpdate()
+                        } else {
+                            self?.coordinator.trigger(.rateLimitUpdated)
+                        }
                     }
                 }
                 do { try await Task.sleep(for: .seconds(30)) } catch { return }
             }
         }
+    }
+
+    func accountDidUpdate() {
+        // Never carry the old account's quota, projections, or profile into a
+        // refresh for a changed login. The new generation rejects older replies.
+        snapshot = nil
+        analyticsWindowController?.discardAccountData()
+        errorState = nil
+        usageProjectionCache = UsageAnalyticsProjectionCache()
+        menuProfile = nil
+        menuLifetime = nil
+        apply(result: RefreshResult(
+            snapshot: nil, error: nil, analyticsStale: false, profileStale: false
+        ))
+        coordinator.trigger(.accountUpdated)
     }
 
     @objc private func toggleQuotaNotifications() {
@@ -510,6 +501,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         confirmation.informativeText = "This consumes a server-managed reset credit and may reset your weekly Codex quota."
         confirmation.addButton(withTitle: "Use Reset Credit")
         confirmation.addButton(withTitle: "Cancel")
+        NSApp.activate(ignoringOtherApps: true)
         guard confirmation.runModal() == .alertFirstButtonReturn else { return }
 
         let creditID = snapshot?.resetCredits.first {

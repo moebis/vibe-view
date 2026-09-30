@@ -113,7 +113,7 @@ final class CodexAppServerClientTests: XCTestCase {
         let transport = InMemoryAppServerLineTransport()
         let client = makeClient(transport: transport)
         try await start(client, transport: transport)
-        let stream = await client.rateLimitUpdates()
+        let stream = await client.accountUpdates()
         let valueTask = Task {
             var iterator = stream.makeAsyncIterator()
             return await iterator.next()
@@ -124,8 +124,52 @@ final class CodexAppServerClientTests: XCTestCase {
         )
 
         let update = await valueTask.value
-        XCTAssertEqual(update?.primary?.usedPercent, 44)
-        XCTAssertEqual(update?.planType, .plus)
+        XCTAssertEqual(update?.rateLimits?.primary?.usedPercent, 44)
+        XCTAssertEqual(update?.rateLimits?.planType, .plus)
+    }
+
+    func testAccountUpdateDoesNotConsumePendingReplyOrLoseInvalidationInBurst() async throws {
+        let transport = InMemoryAppServerLineTransport()
+        let client = makeClient(transport: transport)
+        try await start(client, transport: transport)
+        let stream = await client.accountUpdates()
+        let request = Task { try await client.readAccount() }
+        await transport.waitForSentLine(at: 2)
+        await transport.deliver(
+            #"{"method":"account/updated","params":{"authMode":null,"planType":null,"future":"ignored"}}"#
+        )
+        // Overflow the bounded stream before consuming it. Every surviving event
+        // must still tell the UI that an account change invalidated old data.
+        for _ in 0 ..< 20 {
+            await transport.deliver(
+                #"{"method":"account/rateLimits/updated","params":{"rateLimits":{"limitId":"codex"}}}"#
+            )
+        }
+        var iterator = stream.makeAsyncIterator()
+        let update = await iterator.next()
+        XCTAssertEqual(update?.accountRevision, 1)
+        await transport.deliver(#"{"id":2,"result":{"account":null,"requiresOpenaiAuth":true}}"#)
+        let account = try await request.value
+        XCTAssertNil(account.account)
+        // Late subscribers must receive the invalidation, too.
+        var lateIterator = await client.accountUpdates().makeAsyncIterator()
+        let lateUpdate = await lateIterator.next()
+        XCTAssertEqual(lateUpdate?.accountRevision, 1)
+        await client.stop()
+    }
+
+    func testMalformedAccountUpdateClosesClientWithoutRetainingRawFields() async throws {
+        let transport = InMemoryAppServerLineTransport()
+        let client = makeClient(transport: transport)
+        try await start(client, transport: transport)
+        let pending = Task { try await client.readAccount() }
+        await transport.waitForSentLine(at: 2)
+        await transport.deliver(
+            #"{"method":"account/updated","params":{"authMode":123,"planType":"pro"}}"#
+        )
+        await assertTask(pending, failsWith: .malformedMessage)
+        let stopped = await transport.wasStopped()
+        XCTAssertTrue(stopped)
     }
 
     func testMalformedLineFailsPendingRequestAndClosesClient() async throws {

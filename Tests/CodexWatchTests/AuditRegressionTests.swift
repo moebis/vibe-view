@@ -76,18 +76,18 @@ final class AuditRegressionTests: XCTestCase {
         let second = RecoveryClient()
         let factory = RecoveryFactory([first, second])
         let service = CodexAccountService(retryDelay: .zero, makeClient: { factory.make() })
-        let originalStream = try await service.rateLimitUpdates()
+        let originalStream = try await service.accountUpdates()
         do { _ = try await service.fetchQuota(fetchedAt: .now); XCTFail("Expected failure") } catch {}
         var iterator = originalStream.makeAsyncIterator()
         let end = await iterator.next()
         XCTAssertNil(end)
         let quota = try await service.fetchQuota(fetchedAt: .now)
         XCTAssertEqual(quota.weeklyWindow?.remainingPercent, 80)
-        let stream = try await service.rateLimitUpdates()
+        let stream = try await service.accountUpdates()
         try await second.emitUpdate()
         var newIterator = stream.makeAsyncIterator()
         let update = await newIterator.next()
-        XCTAssertEqual(update?.limitID, "codex")
+        XCTAssertEqual(update?.rateLimits?.limitID, "codex")
         XCTAssertEqual(factory.count, 2)
         let stopped = await first.stopCount
         XCTAssertEqual(stopped, 1)
@@ -187,7 +187,7 @@ private actor RecoveryClient: AppServerAccountServing {
     var apiKey = false
     var stopCount = 0
     var resetKeys: [String] = []
-    var updates: [AsyncStream<AppServerRateLimitSnapshot>.Continuation] = []
+    var updates: [AsyncStream<AppServerAccountUpdate>.Continuation] = []
     init(startupError: AppServerError? = nil, quotaError: AppServerError? = nil, usageError: AppServerError? = nil, resetError: AppServerError? = nil) {
         self.startupError = startupError; self.quotaError = quotaError; self.usageError = usageError; self.resetError = resetError
     }
@@ -209,12 +209,12 @@ private actor RecoveryClient: AppServerAccountServing {
         if let resetError { throw resetError }
         return .alreadyRedeemed
     }
-    func rateLimitUpdates() async -> AsyncStream<AppServerRateLimitSnapshot> {
+    func accountUpdates() async -> AsyncStream<AppServerAccountUpdate> {
         AsyncStream(bufferingPolicy: .bufferingNewest(1)) { updates.append($0) }
     }
     func emitUpdate() throws {
         let value = try limits().rateLimits
-        updates.forEach { $0.yield(value) }
+        updates.forEach { $0.yield(AppServerAccountUpdate(accountRevision: 0, rateLimits: value)) }
     }
     func stop() async {
         stopCount += 1

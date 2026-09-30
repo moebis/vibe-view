@@ -34,38 +34,31 @@ struct AppServerClientInfo: Encodable, Equatable, Sendable {
 enum AppServerAccount: Equatable, Sendable {
     case apiKey
     case chatGPT(planType: AppServerPlanType)
-    case amazonBedrock(usesCodexManagedCredentials: Bool)
+    case amazonBedrock
+    case unsupported
 }
 
 extension AppServerAccount: Decodable {
     private enum CodingKeys: String, CodingKey {
         case type
         case planType
-        case usesCodexManagedCredentials
-    }
-
-    private enum AccountType: String, Decodable {
-        case apiKey
-        case chatgpt
-        case amazonBedrock
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        switch try container.decode(AccountType.self, forKey: .type) {
-        case .apiKey:
+        switch try container.decode(String.self, forKey: .type) {
+        case "apiKey":
             self = .apiKey
-        case .chatgpt:
+        case "chatgpt":
             self = try .chatGPT(
                 planType: container.decode(AppServerPlanType.self, forKey: .planType)
             )
-        case .amazonBedrock:
-            self = try .amazonBedrock(
-                usesCodexManagedCredentials: container.decode(
-                    Bool.self,
-                    forKey: .usesCodexManagedCredentials
-                )
-            )
+        case "amazonBedrock":
+            // Only the provider matters here. Ignore both legacy credential flags
+            // and the current credentialSource field; neither grants ChatGPT quota.
+            self = .amazonBedrock
+        default:
+            self = .unsupported
         }
     }
 }
@@ -241,4 +234,16 @@ struct AppServerInitializeResponse: Decodable, Equatable, Sendable {
 
 struct AppServerRateLimitsUpdatedNotification: Decodable, Sendable {
     let rateLimits: AppServerRateLimitSnapshot
+}
+
+// Carry account invalidation through bounded buffering: even if its original
+// event is dropped, subsequent quota events retain the changed revision.
+struct AppServerAccountUpdate: Equatable, Sendable {
+    let accountRevision: UInt64
+    let rateLimits: AppServerRateLimitSnapshot?
+}
+
+struct AppServerAccountUpdatedNotification: Decodable, Sendable {
+    let authMode: String?
+    let planType: AppServerPlanType?
 }

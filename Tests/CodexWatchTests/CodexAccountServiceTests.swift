@@ -26,18 +26,19 @@ final class CodexAccountServiceTests: XCTestCase {
     }
 
     func testNonChatGPTAccountFailsWithSignInRequired() async {
-        let client = AppServerAccountClientFake(
-            account: AppServerAccountResponse(account: .apiKey, requiresOpenAIAuth: true),
-            rateLimits: rateLimits(),
-            usage: usage()
-        )
-        let service = CodexAccountService(client: client)
-
-        do {
-            _ = try await service.fetchQuota(fetchedAt: Date.now)
-            XCTFail("Expected ChatGPT sign-in requirement")
-        } catch {
-            XCTAssertEqual(error as? CodexAccountServiceError, .signInRequired)
+        for account in [AppServerAccount.apiKey, .amazonBedrock, .unsupported] {
+            let client = AppServerAccountClientFake(
+                account: AppServerAccountResponse(account: account, requiresOpenAIAuth: true),
+                rateLimits: rateLimits(), usage: usage()
+            )
+            let service = CodexAccountService(client: client)
+            do {
+                _ = try await service.fetchQuota(fetchedAt: Date.now)
+                XCTFail("Expected ChatGPT sign-in requirement")
+            } catch {
+                XCTAssertEqual(error as? CodexAccountServiceError, .signInRequired)
+            }
+            await service.stop()
         }
     }
 
@@ -143,7 +144,7 @@ private actor AppServerAccountClientFake: AppServerAccountServing {
         return .reset
     }
 
-    func rateLimitUpdates() async -> AsyncStream<AppServerRateLimitSnapshot> {
+    func accountUpdates() async -> AsyncStream<AppServerAccountUpdate> {
         AsyncStream { $0.finish() }
     }
 

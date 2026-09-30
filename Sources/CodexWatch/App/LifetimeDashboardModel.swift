@@ -120,20 +120,7 @@ struct LifetimeDashboardModel: Equatable, Sendable {
     }
 
     static func compact(_ value: Int64) -> String {
-        let units: [(Double, String)] = [
-            (1_000_000_000, "B"),
-            (1_000_000, "M"),
-            (1_000, "K")
-        ]
-        let numeric = Double(value)
-        guard let unit = units.first(where: { numeric >= $0.0 }) else { return String(value) }
-        var text = String(
-            format: numeric / unit.0 >= 100 ? "%.0f" : "%.1f",
-            locale: Locale(identifier: "en_US_POSIX"),
-            numeric / unit.0
-        )
-        if text.hasSuffix(".0") { text.removeLast(2) }
-        return text + unit.1
+        CompactNumberFormat.string(value)
     }
 
     private static func duration(_ seconds: Int64) -> String {

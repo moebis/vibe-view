@@ -210,26 +210,26 @@ final class RefreshCoordinatorTests: XCTestCase {
     }
 
     @MainActor
-    func testManualReplacementPreventsOldGenerationPublishing() async {
-        let gate = FetchGate()
-        var publishedIDs: [String] = []
-        let coordinator = makeCoordinator(gate: gate, publish: { result in
-            if let id = result.snapshot?.windows.first?.id {
-                publishedIDs.append(id)
-            }
-        })
-
-        coordinator.trigger(.automatic)
-        await gate.waitForFetchCount(1)
-        coordinator.trigger(.manual)
-        await gate.waitForFetchCount(2)
-        await gate.release(trigger: .manual)
-        await coordinator.waitUntilIdleForTesting()
-        await gate.release(trigger: .automatic)
-        for _ in 0 ..< 10 { await Task.yield() }
-
-        XCTAssertEqual(publishedIDs, ["manual"])
-        coordinator.stop()
+    func testManualAndAccountReplacementPreventOldGenerationPublishing() async {
+        for trigger in [RefreshTrigger.manual, .accountUpdated] {
+            let gate = FetchGate()
+            var publishedIDs: [String] = []
+            let coordinator = makeCoordinator(gate: gate, publish: { result in
+                if let id = result.snapshot?.windows.first?.id {
+                    publishedIDs.append(id)
+                }
+            })
+            coordinator.trigger(.automatic)
+            await gate.waitForFetchCount(1)
+            coordinator.trigger(trigger)
+            await gate.waitForFetchCount(2)
+            await gate.release(trigger: trigger)
+            await coordinator.waitUntilIdleForTesting()
+            await gate.release(trigger: .automatic)
+            for _ in 0 ..< 10 { await Task.yield() }
+            XCTAssertEqual(publishedIDs, [String(describing: trigger)])
+            coordinator.stop()
+        }
     }
 
     @MainActor
@@ -257,6 +257,23 @@ final class RefreshCoordinatorTests: XCTestCase {
         await gate.release(trigger: .menuOpened)
         await coordinator.waitUntilIdleForTesting()
         coordinator.stop()
+    }
+
+    @MainActor
+    func testStopBeforeScheduledFetchStartsDoesNotEnterFetcher() async {
+        var fetches = 0
+        let coordinator = RefreshCoordinator(
+            frequency: .manual,
+            fetch: { _ in
+                fetches += 1
+                return RefreshResult(snapshot: nil, error: nil, analyticsStale: false)
+            },
+            publish: { _ in XCTFail("Stopped work cannot publish") }
+        )
+        coordinator.trigger(.automatic)
+        coordinator.stop()
+        for _ in 0 ..< 10 { await Task.yield() }
+        XCTAssertEqual(fetches, 0)
     }
 
     @MainActor
@@ -465,7 +482,7 @@ private actor FetchGate {
         await withCheckedContinuation { continuation in
             continuations[request.generation] = continuation
         }
-        let id = request.trigger == .manual ? "manual" : "automatic"
+        let id = String(describing: request.trigger)
         return RefreshResult(
             snapshot: UsageSnapshot(
                 windows: [UsageWindow(id: id, kind: .weekly, usedPercent: 0)],

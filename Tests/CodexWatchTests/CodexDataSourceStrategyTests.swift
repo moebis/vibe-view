@@ -128,7 +128,7 @@ private actor CodexAccountServingFake: CodexAccountServing {
         .reset
     }
 
-    func rateLimitUpdates() async throws -> AsyncStream<AppServerRateLimitSnapshot> {
+    func accountUpdates() async throws -> AsyncStream<AppServerAccountUpdate> {
         AsyncStream { $0.finish() }
     }
 

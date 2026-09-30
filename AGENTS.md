@@ -8,9 +8,9 @@ For implementation, state the change, preserved behavior, scope exclusions, risk
 
 ## Product and privacy
 
-- Native macOS menu bar app with one user-opened analytics window. The adaptive pie icon and percentage always represent remaining base-weekly Codex quota. Retired Spark quota rows are suppressed; other model limits are server-defined and never substitute for base-weekly quota.
+- Native macOS menu bar app with one user-opened analytics window. The icon-free status percentage always represents remaining base-weekly Codex quota. Retired Spark quota rows are suppressed; other model limits are server-defined and never substitute for base-weekly quota.
 - Prefer managed-auth Codex app-server account data; keep bounded same-host HTTPS compatibility and richer analytics. One bounded 365-day response powers 7/30/90/365 views; exact Lifetime data is a separate source.
-- Claude quota is a separate opt-in provider under `CLAUDE-QUOTA-017` and decision 012. Read only the default Claude Code credential, keep tokens in memory, and never start a model session or modify the CLI login.
+- Vibe View is Codex-only. The Claude provider was retired (`CLAUDE-QUOTA-017`); do not read Claude credentials or usage data without a new explicit request.
 - Never print or commit auth files, credentials, Authorization headers, complete usage responses, prompts, or conversation metadata. Keep authenticated data in memory; only user-selected Usage CSV export may persist analytics.
 - Keep HTTPS ephemeral and on the original host. Bound app-server JSONL while reading; discard child stderr, ignore private account/thread fields, and launch only a known executable without a shell.
 - Notifications, Launch at Login, diagnostics, export, and reset redemption require explicit user actions. Reset spending requires confirmation and idempotent retries. Keep notification copy and diagnostics free of private values, paths, and raw errors.

@@ -14,7 +14,7 @@ File-only authentication excludes keyring/automatic credential stores. Prefer ma
 
 `DATA-SOURCE-015` owns the bounded JSONL handshake with experimental APIs disabled, request timeouts, child cleanup, account revalidation, and retry floor. Real pipes need POSIX reads that consume short replies while stdout remains open; in-memory transport tests alone missed the initialization stall. Ignore private account identity and thread-usage fields and discard stderr.
 
-Official quota is preferred. Lifetime prefers the richer compatibility profile, then reduced official account usage; trailing-365-day Usage remains compatibility-only. Publish quota before slower analytics through the generation guard. Account notifications request coalesced quota-only refreshes; authentication loss marks retained analytics stale.
+Official quota is preferred. Lifetime prefers the richer compatibility profile, then reduced official account usage; trailing-365-day Usage remains compatibility-only. Publish quota before slower analytics through the generation guard. Rate-limit notifications request coalesced quota-only refreshes. Account-change notifications discard prior displayed data and replace active work with a full refresh; a revision counter carries invalidation through bounded notification bursts; authentication loss marks retained analytics stale.
 
 `USER-CONTROLS-016` keeps quota alerts opt-in, generic, and free of repeated/stale notifications; Launch at Login uses `SMAppService.mainApp`, and diagnostics contain only operational state. `RESET-CREDITS-006` requires confirmation and idempotent handling of uncertain spending.
 

@@ -97,12 +97,12 @@ enum AppServerUsageAdapter {
     private static func credits(from value: AppServerCreditsSnapshot?) -> CreditsRemaining? {
         guard let value else { return nil }
         if value.unlimited { return .unlimited }
-        guard value.hasCredits,
-              let balance = value.balance?.trimmingCharacters(in: .whitespacesAndNewlines),
+        guard let balance = value.balance?.trimmingCharacters(in: .whitespacesAndNewlines),
               !balance.isEmpty,
               balance.utf8.count <= 64,
               let decimal = ValidatedDecimal.parse(balance),
-              !decimal.isNaN else { return nil }
+              !decimal.isNaN,
+              value.hasCredits || decimal <= 0 else { return nil }
         return .balance(balance)
     }
 
@@ -221,13 +221,7 @@ enum AppServerUsageAdapter {
     }
 
     private static func boundedText(_ value: String, maximumBytes: Int) -> String {
-        var result = ""
-        for character in value.trimmingCharacters(in: .whitespacesAndNewlines) {
-            let candidate = result + String(character)
-            guard candidate.utf8.count <= maximumBytes else { break }
-            result = candidate
-        }
-        return result
+        BoundedText.trimmed(value, maximumUTF8Bytes: maximumBytes)
     }
 
     private static func windowTitle(base: String, kind: UsageWindowKind) -> String {
