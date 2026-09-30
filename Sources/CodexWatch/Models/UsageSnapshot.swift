@@ -262,8 +262,22 @@ enum CreditsRemaining: Equatable, Sendable {
 
     var displayValue: String {
         switch self {
-        case let .balance(value): value
-        case .unlimited: "Unlimited"
+        case let .balance(value):
+            guard var decimal = ValidatedDecimal.parse(value) else { return "Unavailable" }
+            var rounded = Decimal()
+            NSDecimalRound(&rounded, &decimal, 0, .plain)
+            return rounded.formatted(
+                .number.locale(Locale(identifier: "en_US"))
+                    .grouping(.automatic).precision(.fractionLength(0))
+            )
+        case .unlimited: return "Unlimited"
         }
+    }
+}
+
+extension CreditsRemaining {
+    var displayDetail: String? {
+        guard case let .balance(value) = self else { return nil }
+        return "Reported balance: \(value) credits. Display rounded to the nearest whole credit."
     }
 }

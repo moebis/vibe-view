@@ -1,7 +1,7 @@
 ---
 status: current
 owner: project-maintainer
-last_verified_date: 2026-09-24
+last_verified_date: 2026-09-30
 current_release: 1.3.7
 current_build: 32
 ---
@@ -12,7 +12,7 @@ current_build: 32
 
 - Native Mac app; repository `https://github.com/moebis/vibe-view`, primary checkout on `main`. No project production server, database, Docker deployment, or automatic updater. See README for install commands and attribution.
 - Branding is Vibe View and the origin repository is `moebis/vibe-view`. Keep the existing `com.moebis.codexwatch` identifier, `CodexWatch` executable/module, and preference keys for upgrade compatibility. Install at `/Applications/Vibe View.app` and remove the superseded app only after bundle verification succeeds.
-- Version/build authority is `Resources/Info.plist` plus `scripts/verify_app.sh`. Version 1.3.7 build 32 adds account-change invalidation, current/legacy provider decoding, visible depleted usage-credit balances, and safe refresh shutdown. The 2026-09-30 bundle passed 213 tests, strict concurrency, focused ASan/TSan, script regressions, and signed universal verification. The verified bundle is installed at `/Applications/Vibe View.app`; startup and live official quota/credit decoding were confirmed. Account changes also clear the dashboard model and CSV projection, including closed windows. Replace the whole bundle so its outer directory timestamp reflects installation.
+- Version/build authority is `Resources/Info.plist` plus `scripts/verify_app.sh`. Version 1.3.7 build 32 adds account-change invalidation, current/legacy provider decoding, visible depleted usage-credit balances, whole-credit display with exact-balance tooltips, and safe refresh shutdown. The 2026-09-30 bundle passed 214 tests, strict concurrency, focused ASan/TSan, script regressions, and signed universal verification. The verified bundle is installed at `/Applications/Vibe View.app`; startup and live official quota/credit decoding were confirmed. Account changes also clear the dashboard model and CSV projection, including closed windows. Replace the whole bundle so its outer directory timestamp reflects installation.
 - The user's screenshots confirmed that native on-state items force duplicate left checks despite `showsStateColumn = false`, and that removing native state leaves a 2-point difference between the custom 14-point inset and native 16-point inset. Main-menu toggles now use only trailing badges plus Enabled/Disabled tooltips; build 26 matches custom sections to the native 16-point horizontal margins. Actions, settings, and quota calculations are unchanged. Live accessory-menu capture remains unavailable; compare any further spacing request against the supplied screenshot rather than inferring pixel alignment from accessibility text.
 
 

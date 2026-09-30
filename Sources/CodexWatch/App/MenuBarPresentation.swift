@@ -159,6 +159,7 @@ struct QuotaWindowPresentation: Equatable, Identifiable {
 struct QuotaProgressPresentation: Equatable {
     let planValue: String
     let creditsRemainingValue: String?
+    let creditsRemainingDetail: String?
     let quotaValue: String
     let quotaProgress: Double?
     let resetValue: String
@@ -175,6 +176,7 @@ struct QuotaProgressPresentation: Equatable {
     init(snapshot: UsageSnapshot?, error: MenuBarErrorState?, now: Date) {
         planValue = snapshot?.plan?.displayName ?? "Unavailable"
         creditsRemainingValue = snapshot?.creditsRemaining?.displayValue
+        creditsRemainingDetail = snapshot?.creditsRemaining?.displayDetail
         resetCreditsValue = snapshot?.availableResetCredits.map { "\($0) available" }
         resetCreditsDetail = MenuBarText.resetCreditExpiryLine(snapshot: snapshot)
         resetCreditsProgress = Self.resetCreditProgress(snapshot: snapshot, now: now)
@@ -300,7 +302,9 @@ final class QuotaProgressMenuView: MenuContentView {
 
         add(Self.labelRow(title: "Codex plan", value: presentation.planValue), to: stack)
         if let creditsRemainingValue = presentation.creditsRemainingValue {
-            add(Self.labelRow(title: "Usage credits", value: creditsRemainingValue), to: stack)
+            let row = Self.labelRow(title: "Usage credits", value: creditsRemainingValue)
+            row.toolTip = presentation.creditsRemainingDetail
+            add(row, to: stack)
         }
         if let statusDetail = presentation.statusDetail {
             add(Self.detailLabel(statusDetail), to: stack)

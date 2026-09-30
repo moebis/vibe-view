@@ -142,7 +142,7 @@ contracts:
   - id: CREDITS-BALANCE-009
     title: The status menu shows server-reported ChatGPT usage credits
     status: active
-    statement: When credits.has_credits is true and the existing usage response contains a numeric credits.balance value, the expanded status menu displays it in one Usage credits row, separate from earned reset credits. An explicit zero or negative balance remains visible when has_credits is false after depletion. Positive, zero, and negative server-reported balances are preserved. When credits.unlimited is true, the row displays Unlimited instead of a numeric balance. Numeric text must validate in full, not just as a numeric prefix. A missing entitlement, a positive balance with has_credits false, a missing or malformed balance, or an oversized value hides the row and is never replaced with an assumed zero. No message estimates or other credits metadata are displayed.
+    statement: When credits.has_credits is true and the existing usage response contains a numeric credits.balance value, the expanded status menu displays it in one Usage credits row, separate from earned reset credits. An explicit zero or negative balance remains visible when has_credits is false after depletion. Positive, zero, and negative server-reported balances are preserved in the domain model and exact-balance tooltip. The Usage credits row groups digits with commas and rounds Decimal values to the nearest whole credit for display, without converting through Double. When credits.unlimited is true, the row displays Unlimited instead of a numeric balance. Numeric text must validate in full, not just as a numeric prefix. A missing entitlement, a positive balance with has_credits false, a missing or malformed balance, or an oversized value hides the row and is never replaced with an assumed zero. No message estimates or other credits metadata are displayed.
     rationale: The server can report a negative balance after concurrent usage depletes credits, while has_credits and unlimited determine whether a numeric balance has the intended meaning; losing credit availability must not hide an explicitly reported depleted balance.
     source: user-confirmed-and-official-docs
     owner: project-maintainer
@@ -151,7 +151,7 @@ contracts:
       include: [usage-parsing, status-menu, credits-balance]
       exclude: [message-estimates, overage-state, spend-controls, additional-rate-limits]
     examples:
-      positive: A credits.balance of -1.25 with has_credits true displays Usage credits and -1.25, while unlimited true displays Unlimited.
+      positive: A credits.balance of -1.25 with has_credits true displays Usage credits and -1 with -1.25 retained in its tooltip, while unlimited true displays Unlimited.
       negative: A missing entitlement displays zero, or approximate message counts are added to the menu.
     guards:
       - Tests/CodexWatchTests/AuditRegressionTests.swift

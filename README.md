@@ -50,7 +50,7 @@ Unchanged Usage projections and Lifetime presentation models are reused in memor
 
 Codex app-server rate-limit updates request a coalesced quota-only refresh. Account-change notifications clear the previous quota, Usage projections, and Lifetime data and replace active work with a full refresh. Shutdown prevents new requests and drains active refreshes before closing the network session. The dashboard Refresh control invokes the same manual generation as the menu. Its heatmap uses weekday rows and week columns, and wide data tables scroll rather than clipping when the window is narrow.
 
-Usage credits appear as a separate row from earned reset credits. The app preserves the server-reported balance, including an explicit zero after depletion, or displays `Unlimited` when reported. It never converts credits to dollars or estimates remaining messages.
+Usage credits appear as a separate row from earned reset credits. The app preserves the exact server-reported balance, including an explicit zero after depletion. The row shows a comma-separated whole number rounded to the nearest credit; hover for the exact reported balance. It displays `Unlimited` when reported. It never converts credits to dollars or estimates remaining messages.
 
 ## CSV export
 

@@ -585,7 +585,7 @@ final class MenuBarTextTests: XCTestCase {
         let presentation = QuotaProgressPresentation(snapshot: snapshot, error: nil, now: now)
 
         XCTAssertEqual(presentation.planValue, "Pro")
-        XCTAssertEqual(presentation.creditsRemainingValue, "12.50")
+        XCTAssertEqual(presentation.creditsRemainingValue, "13")
         XCTAssertEqual(presentation.quotaValue, "81%")
         XCTAssertEqual(try XCTUnwrap(presentation.quotaProgress), 0.81, accuracy: 0.0001)
         XCTAssertEqual(presentation.resetValue, "2d 0h")
@@ -885,11 +885,31 @@ final class MenuBarTextTests: XCTestCase {
         )
 
         XCTAssertTrue(textValues(in: visible).contains("Usage credits"))
-        XCTAssertTrue(textValues(in: visible).contains("-1.25"))
+        XCTAssertTrue(textValues(in: visible).contains("-1"))
         XCTAssertFalse(textValues(in: hidden).contains("Usage credits"))
         XCTAssertGreaterThan(visible.frame.height, hidden.frame.height)
         assertContentFits(visible)
         assertContentFits(hidden)
+    }
+
+    func testCreditDisplayGroupsWholeNumbersAndKeepsExactFractionInTooltip() {
+        for (raw, expected) in [
+            ("12345.678901234567", "12,346"), ("12500", "12,500"),
+            ("99.5", "100"), ("0", "0"), ("-1.25", "-1"),
+            ("9007199254740993.1234", "9,007,199,254,740,993")
+        ] {
+            let credits = CreditsRemaining.balance(raw)
+            let presentation = QuotaProgressPresentation(
+                snapshot: UsageSnapshot(creditsRemaining: credits, windows: []), error: nil, now: .now
+            )
+            XCTAssertEqual(presentation.creditsRemainingValue, expected)
+            XCTAssertTrue(presentation.creditsRemainingDetail?.contains(raw) == true)
+            let view = QuotaProgressMenuView(presentation: presentation)
+            XCTAssertTrue(view.subviews.contains { child in
+                child.subviews.contains { $0.toolTip == presentation.creditsRemainingDetail }
+            })
+            assertContentFits(view)
+        }
     }
 
     func testProgressPresentationShowsUnlimitedCredits() {

@@ -4,7 +4,7 @@
 
 - Clear previous account data and refresh all capabilities when Codex reports an account change; preserve invalidation through bounded notification bursts and reject older refresh generations.
 - Recognize both current and legacy Bedrock account responses and reject unsupported providers with a ChatGPT sign-in requirement.
-- Label purchased balances as `Usage credits`, distinct from earned reset credits, and retain explicitly reported zero balances after depletion.
+- Label purchased balances as `Usage credits`, distinct from earned reset credits, and retain explicitly reported zero balances after depletion. Show comma-separated whole credits while preserving the exact fractional balance in the tooltip.
 - Prevent cancelled refreshes from starting network requests after shutdown, and close the HTTPS session after in-flight work drains.
 
 ## 1.3.6 (build 31) — 2026-09-24
