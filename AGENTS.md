@@ -2,7 +2,7 @@
 
 ## Read only the relevant authority
 
-Start with `docs/PROJECT_MEMORY.md` and `docs/agent-harness.md`. Before changing behavior, authentication, privacy, packaging, or release automation, also read `ARCHITECTURE.md`, affected records in `docs/contracts/behavior-contracts.yaml`, and relevant active decisions from `docs/decisions/README.md`. Do not load unrelated decisions or historical release narration for a narrow task.
+Use `docs/PROJECT_MEMORY.md` for the current handoff and orientation, `docs/agent-harness.md` to choose checks, and `ARCHITECTURE.md` for structural changes. Behavior, authentication, privacy, packaging, or release-automation changes require the affected records in `docs/contracts/behavior-contracts.yaml` and relevant active decisions from `docs/decisions/README.md`. Do not load unrelated decisions or historical release narration for a narrow task.
 
 For implementation, state the change, preserved behavior, scope exclusions, risk, and verification plan before editing. Documentation-only work needs focused authority, link, and whitespace checks.
 
@@ -18,15 +18,15 @@ For implementation, state the change, preserved behavior, scope exclusions, risk
 
 ## Verification and artifacts
 
-Use the lowest sufficient path in `docs/agent-harness.md`; its aggregate gates already include their prerequisites. Do not run the same tests twice or rebuild for documentation changes. Authentication, parsing, concurrency, lifecycle, or runtime memory-safety changes additionally require strict-concurrency compilation and the relevant sanitizer suite; editing project-memory prose does not.
+Use the lowest sufficient path in `docs/agent-harness.md`; its aggregate gates already include their prerequisites. Do not repeat passing checks or rebuild for documentation changes unless explicitly requested. Authentication, parsing, concurrency, lifecycle, or runtime memory-safety changes additionally require strict-concurrency compilation and the relevant sanitizer suite; editing project-memory prose does not.
 
 Build and sign outside synced storage. Use `./scripts/verify.sh /private/tmp/codex-watch-verify` for an installable bundle, and `./scripts/release.sh /private/tmp/codex-watch-release` only for a distributable archive. Native menu/dashboard layout, notification delivery, login registration, CSV save, and Gatekeeper behavior require real-Mac confirmation when affected.
 
-Keep the installed app and at most one verified latest rollback bundle. After successful installation, remove obsolete project-owned builds, sanitizer scratch trees, archives, and temporary outputs when cleanup is authorized. Preserve preferences, user exports, source history, and shared caches. There is no project production server or Docker deployment; never prune unrelated infrastructure.
+Keep the installed app and one verified latest rollback set in ignored `dist/backups/`: complete bundle ZIP, file/archive hashes, and restoration instructions. Extract outside synced storage and verify the exact restored bundle before retiring the previous backup; `/private/tmp` alone is not durable retention. App rollback does not include shared credentials, preferences, or user exports. Remove obsolete project-owned builds, sanitizer scratch trees, archives, and temporary outputs when cleanup is authorized; preserve source history and shared caches. There is no project production server or Docker deployment; never prune unrelated infrastructure.
 
 ## Git and documentation
 
 - Work in the primary checkout on `main`, preserve unrelated changes, and push only when requested. No branch/worktree or version tag without explicit authorization; GitHub Releases require a separate request.
 - Inspect destination workflow triggers before every push. When direct verification suffices, use a supported skip marker such as `[skip ci]`; do not rely on path filters. Do not alter recurring workflows or restore automatic triggers without authorization.
 - Keep structure in `ARCHITECTURE.md`, current handoff in `docs/PROJECT_MEMORY.md`, and normative behavior/rationale in active contracts/decisions. Git history is the archive; do not retain completed plans or duplicate release narratives.
-- When `Resources/Info.plist` changes, update version/build verification guards. Tags must match `CFBundleShortVersionString` as `vMAJOR.MINOR.PATCH`.
+- Documentation-only maintenance does not bump the product version or build. When `Resources/Info.plist` changes, update version/build verification guards. Tags must match `CFBundleShortVersionString` as `vMAJOR.MINOR.PATCH`.

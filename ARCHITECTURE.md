@@ -1,7 +1,7 @@
 ---
 status: active
 owner: project-maintainer
-last_verified_commit: a628a8c
+last_reviewed_source_commit: 418bfd6
 ---
 
 # Vibe View architecture
@@ -12,7 +12,8 @@ This is the current structural authority for Vibe View. Behavioral details belon
 
 | Concern | Current choice |
 |---|---|
-| Product | Native macOS menu bar app, `LSUIElement` |
+| Product | Native macOS menu bar app, `LSUIElement`, Codex-only |
+| Stable identity | `CodexWatch` executable/module, `com.moebis.codexwatch` bundle identifier, existing preference keys |
 | Toolchain | Swift Package Manager, Swift tools 5.9, Swift 5 mode |
 | Platform | macOS 14 or newer |
 | UI | AppKit lifecycle, status item, menu, and window; SwiftUI plus Charts dashboard |
@@ -39,7 +40,7 @@ Both paths
     -> optional user-selected atomic CSV export
 ```
 
-Authenticated data is neither logged nor cached. Validation rejects malformed, non-finite, overflowing, or unsupported values without estimating missing data. Signed credit balances are valid; nonnegative usage metrics have separate bounds.
+Authenticated data is not logged or cached on disk. Domain state and derived projections remain in memory; the HTTPS session has no response cache. Validation rejects malformed, non-finite, overflowing, or unsupported values without estimating missing data. Signed credit balances are valid; nonnegative usage metrics have separate bounds.
 
 ## Component ownership
 
@@ -81,21 +82,18 @@ Authenticated data is neither logged nor cached. Validation rejects malformed, n
 - Repeated automatic triggers share active work. Manual refresh creates a new generation, cancels older work, and prevents stale publication.
 - Menu opening is quota-only and refreshes only when the last successful quota snapshot is older than 60 seconds.
 - App-server rate-limit update notifications trigger a coalesced quota-only refresh. They never bypass generation ownership or the analytics cadence.
-- Scheduled delays begin after fetch completion. `stop()` cancels scheduled and active tasks, invalidates the session, removes the status item, and prevents later publication.
-- Authentication failure may preserve prior in-memory analytics and profile values, but both surfaces must be marked stale, including after a quota-only refresh.
+- Scheduled delays begin after fetch completion. `stop()` cancels scheduled and active tasks, removes the status item, and prevents later publication. In-flight refreshes drain before their HTTPS session is invalidated.
+- Authentication failure may preserve prior in-memory analytics and profile values with stale state. Account changes instead clear quota, profile, menu projections, and dashboard/CSV data, even when the dashboard is closed, and start a replacement generation.
 - Quota publishes before eligible analytics completes, through the same generation guard. Old or stopped generations cannot publish partial results.
 - Account operations share one connection startup. Failed connections are cleaned up and replaced after a 30-second retry floor; the update observer resubscribes on the same bounded cadence. Account identity is revalidated before each operation. Optional unsupported methods do not discard a healthy quota connection, and uncertain reset mutations are never retried automatically.
 
-## Presentation semantics
+## Presentation structure
 
-- The app-server adapter prefers the explicit `codex` map entry and accepts only a base or unidentified legacy bucket. The menu-bar number is always the rounded remaining base-weekly percentage. It never switches to a rolling, Spark, or model-specific limit.
-- The status item shows only the percentage (no icon; it sits beside the official Codex icon) with native foreground rendering for light, dark, and selected materials. A fixed `autosaveName` keeps a user's Command-drag position across relaunches and updates.
-- Retired Spark quota rows are suppressed and their obsolete visibility preference is removed on initialization. Presentation still recognizes legacy and versioned Codex/Spark names; other server-defined buckets and historical analytics remain intact. No Spark-to-Luna quota mapping is inferred.
-- Usage projections use a single-entry in-memory cache per surface keyed by the complete dataset, range, calendar, and reference day. Lifetime models rebuild only when their profile changes. Unchanged dashboard values are not republished, and a closed window defers updates until reopened. Native menu opening rebuilds time-dependent labels through `menuNeedsUpdate(_:)`.
-- Custom menu sections share content-driven sizing and 16-point horizontal margins matching the native action rows and separators. The selected analytics section determines its height. Reset date and pace share a line; exhaustion remains separate. The main native menu hides its state gutter and uses trailing checkmark badges while preserving actions and keyboard handling. Main-menu toggles leave native item state off to avoid macOS forcing a leading checkmark gutter; enabled status is conveyed by the badge and tooltip.
-- Usage and Lifetime are distinct sources. The bounded 365-day dataset powers 7/30/90/365 projections; exact lifetime totals come from the profile route.
-- Activity-only days, observed zero-token days, and missing days remain distinct. Model rows describe activity; client rows describe tokens.
-- The heatmap uses seven weekday rows and as many week columns as the selected range needs. Model and client tables scroll horizontally instead of clipping narrow windows, and the dashboard refresh button invokes the same manual generation as the menu.
+`MenuBarPresentation` maps validated domain state into the icon-free native status item and custom menu sections. Usage and Lifetime have separate models and sources. Normative quota selection, credit rounding and exact tooltips, stale-state handling, and control behavior belong in `docs/contracts/behavior-contracts.yaml`.
+
+Usage projections use a single-entry in-memory cache per surface keyed by the complete dataset, range, calendar, and reference day. Lifetime models rebuild only when their profile changes. Unchanged dashboard values are not republished, and a closed window defers ordinary updates until reopened; account invalidation clears its model immediately. Native menu opening rebuilds time-dependent labels through `menuNeedsUpdate(_:)`.
+
+The status item uses a fixed `autosaveName` to retain its Command-drag position across relaunches and updates. Custom menu sections use content-driven sizing and 16-point horizontal margins matching native action rows. Main-menu toggles use trailing badges and tooltips with native item state off to avoid a leading checkmark gutter. The SwiftUI dashboard uses Charts, a seven-row weekday heatmap, and horizontally scrolling model/client tables; its refresh action shares the menu's manual refresh generation.
 
 ## Persistence
 
@@ -109,19 +107,16 @@ UserDefaults stores only:
 
 Quota, credentials, analytics, profile statistics, refresh timestamps, and errors remain process-local.
 
-## Build, verification, and retention
+## Build and distribution
 
-Use `docs/agent-harness.md` to select one proportional verification path. `verify.sh` already checks contracts, runs tests, builds, and verifies the bundle. `release.sh` adds release-script/strict-concurrency prerequisites and exact extracted-archive verification. Build scripts use `CODEX_WATCH_SCRATCH_PATH` in temporary storage by default; direct Swift commands must also select nonsynced scratch storage.
+The local runtime has outbound ChatGPT access and no project-owned production service, database, or Docker deployment. Claude monitoring is retired and no Anthropic requests are made.
 
-Bundles are ad-hoc signed with hardened runtime; Developer ID and notarization are not configured. Synced folders can reattach Finder metadata and break strict signatures. Verify the exact built, installed, or extracted artifact without weakening signature checks.
+Bundles are ad-hoc signed with hardened runtime; Developer ID and notarization are not configured. Build scripts use `CODEX_WATCH_SCRATCH_PATH` in temporary storage by default. Synced folders can reattach Finder metadata and break strict signatures, so checks target the exact built, installed, or extracted artifact. Tag-driven GitHub distribution uses the universal release path; `.github/workflows/` owns its actual triggers.
 
-The runtime is entirely local, with outbound ChatGPT and explicitly enabled Anthropic quota requests. There is no project-owned production service, database, or Docker deployment configured. Keep the installed app and one latest verified rollback bundle; user preferences and CSV exports are separate from app-bundle recovery. Remove obsolete project-owned build/sanitizer trees and temporary artifacts after they are no longer in use. Do not prune shared developer caches, other projects, or system backups.
-
-Inspect `.github/workflows/` before every push. Existing main/PR and version-tag triggers can start hosted Actions; routine directly verified pushes must use a supported skip marker. Tags require separate release authorization and must match `CFBundleShortVersionString`. Do not treat an automatic trigger as permission to spend hosted quota.
+`AGENTS.md` owns operating boundaries, push authorization, and artifact retention; `docs/agent-harness.md` owns proportional verification commands and aggregate gates. Contracts own packaging behavior.
 
 ## Explicit constraints and deferred decisions
 
 - The app is unsandboxed to support the known Codex child process and optional credential-file compatibility path. App Sandbox requires a deliberate process/authentication access design, not a packaging-only toggle.
 - ChatGPT endpoints are internal and may change. Preserve independent failures, stale labeling, bounded reads, and truthful unavailable states when adapting schemas.
 - New hosts, private-data persistence, local-history indexing, multi-account support, providers, updater behavior, or additional state-changing API calls require explicit contracts and an architecture decision.
-- Do not restore completed implementation plans. Distill durable behavior here, in `docs/PROJECT_MEMORY.md`, contracts, or active decisions; use Git history for release archaeology.

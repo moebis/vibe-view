@@ -75,7 +75,7 @@ These compatibility endpoints are internal ChatGPT routes, not a public API cont
 
 The Usage analytics request covers the inclusive trailing 365 calendar days. Smaller views are projected locally from that one bounded response. The profile request supplies exact Lifetime headline totals and its own daily activity buckets; those values are never reconstructed from incomplete historical rows. Each response is capped at one mebibyte. The production network session is ephemeral, uncached, cookieless, and rejects redirects to another host.
 
-Authenticated responses remain in process memory. Vibe View never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or unconfigured network destination. The explicitly connected Claude provider adds only Anthropic quota requests.
+Authenticated responses remain in process memory. Vibe View never logs credentials, headers, response bodies, account identifiers, analytics values, or export paths. It does not read rollout JSONL, the Codex task database, prompts, titles, project paths, browser cookies, Keychain browser material, or process lists. Generic notification content contains no private usage value. The diagnostics action copies only operational state. It adds no telemetry, updater, automatic download, hidden web view, or unconfigured network destination.
 
 The ChatGPT routes are internal and may change without notice. Missing or changed optional fields are hidden or marked partial rather than guessed. Vibe View does not infer absolute token allowances, missing lifetime totals, streaks, plugin use, skill use, reasoning modes, or pricing.
 
@@ -126,7 +126,7 @@ Keep signing output outside File Provider or other synced folders. Those service
 
 Inspect workflow triggers before pushing. Use `[skip ci]` for routine pushes verified directly, including documentation updates. A separately authorized `vMAJOR.MINOR.PATCH` tag matching `CFBundleShortVersionString` triggers hosted release packaging and publication; it rejects a mismatched tag. An existing trigger does not authorize hosted execution when a direct path suffices.
 
-Remove obsolete project build/temp outputs after use and keep one latest verified rollback app. Vibe View has no configured production server or Docker deployment. Keep preferences, user-selected exports, shared caches, and unrelated backups separate from app-build cleanup.
+Maintenance boundaries and artifact-retention instructions are in [AGENTS.md](AGENTS.md). Vibe View has no configured production server or Docker deployment.
 
 ## Architecture and maintenance
 
